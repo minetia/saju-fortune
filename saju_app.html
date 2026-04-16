@@ -117,10 +117,10 @@ body {
   to { opacity: 1; transform: translateY(0); }
 }
 .scroll-smooth { scroll-behavior: smooth; }
-input[type="date"], input[type="time"], select, input[type="number"] {
+input[type="date"], input[type="time"], input[type="text"], select, input[type="number"] {
   background: var(--bg-card2);
   border: 1px solid rgba(212,175,55,0.3);
-  color: var(--text);
+  color: #f0e68c;
   padding: 10px 14px;
   border-radius: 8px;
   font-size: 1rem;
@@ -128,9 +128,14 @@ input[type="date"], input[type="time"], select, input[type="number"] {
   outline: none;
   transition: border-color 0.3s;
 }
+input::placeholder { color: #666; }
 input:focus, select:focus {
   border-color: var(--gold);
   box-shadow: 0 0 8px rgba(212,175,55,0.3);
+  color: #fff;
+}
+body.light-mode input[type="text"], body.light-mode input[type="date"], body.light-mode select {
+  color: #1a1a2e;
 }
 button {
   cursor: pointer;
