@@ -3658,53 +3658,61 @@ function generateTalisman(canvas, type, dayStem, yongsinAnalysis, pillars) {
   const dayElement = CHEONGAN[dayStem].element;
   const yongsin = yongsinAnalysis ? yongsinAnalysis.yongsin.element : dayElement;
 
-  // ── 공통 배경: 노란 종이(黃紙) ──
+  // ── 등급별 색상 시스템 ──
+  const talismanInfo = TALISMAN_NAMES[type] || {};
+  const grade = TALISMAN_GRADES[talismanInfo.grade || 'normal'] || TALISMAN_GRADES['normal'];
+  const paperColors = grade.paperBg;
+
+  // 배경
   const paperGrad = ctx.createLinearGradient(0,0,W,H);
-  paperGrad.addColorStop(0,'#e8d08c');
-  paperGrad.addColorStop(0.3,'#f0d898');
-  paperGrad.addColorStop(0.5,'#e5cc82');
-  paperGrad.addColorStop(0.7,'#f0d898');
-  paperGrad.addColorStop(1,'#dcc478');
+  paperGrad.addColorStop(0, paperColors[0]);
+  paperGrad.addColorStop(0.3, paperColors[1]);
+  paperGrad.addColorStop(0.5, paperColors[0]);
+  paperGrad.addColorStop(0.7, paperColors[1]);
+  paperGrad.addColorStop(1, paperColors[2]);
   ctx.fillStyle = paperGrad;
   ctx.fillRect(0,0,W,H);
 
-  // 종이 질감 (노이즈)
+  // 종이 질감 (노이즈) - 등급에 따라 다른 느낌
+  const isLight = talismanInfo.grade === 'normal';
   for (let i = 0; i < 2000; i++) {
     const x = Math.random()*W, y = Math.random()*H;
-    ctx.fillStyle = `rgba(${120+Math.random()*40},${100+Math.random()*40},${50+Math.random()*30},${Math.random()*0.08})`;
+    if (isLight) {
+      ctx.fillStyle = `rgba(${120+Math.random()*40},${100+Math.random()*40},${50+Math.random()*30},${Math.random()*0.08})`;
+    } else {
+      ctx.fillStyle = `rgba(${200+Math.random()*55},${180+Math.random()*55},${100+Math.random()*55},${Math.random()*0.04})`;
+    }
     ctx.fillRect(x,y,1,1);
   }
 
-  // 빨간 주사(朱砂) 잉크 색상
-  const RED = '#b91c1c';
-  const RED_LIGHT = '#dc2626';
-  const RED_DARK = '#7f1d1d';
+  // 등급별 잉크 색상
+  const RED = grade.ink;
+  const RED_LIGHT = grade.inkLight;
+  const RED_DARK = grade.ink + 'cc';
 
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
 
   // ── 공통 헬퍼 함수들 ──
   function drawBorder(thick, double) {
-    ctx.strokeStyle = RED; ctx.lineWidth = thick || 3;
+    ctx.strokeStyle = grade.borderColor; ctx.lineWidth = thick || 3;
     ctx.strokeRect(12,12,W-24,H-24);
     if (double) {
-      ctx.strokeStyle = RED_DARK; ctx.lineWidth = 1;
+      ctx.strokeStyle = grade.borderColor + '88'; ctx.lineWidth = 1;
       ctx.strokeRect(20,20,W-40,H-40);
     }
   }
   function drawHeader() {
-    // 勅令 (칙령) - Divine Decree
     ctx.fillStyle = RED; ctx.font = 'bold 28px serif';
     ctx.fillText('勅', W/2-25, 50); ctx.fillText('令', W/2+25, 50);
   }
   function drawFooterCommand() {
-    // 急急如律令 - closing command
     ctx.font = 'bold 16px serif'; ctx.fillStyle = RED_DARK;
     ctx.fillText('急急如律令', W/2, H-95);
   }
   function drawDateStamp() {
     const today = new Date();
-    ctx.font = '9px sans-serif'; ctx.fillStyle = '#8b7355';
+    ctx.font = '9px sans-serif'; ctx.fillStyle = isLight ? '#8b7355' : '#88888888';
     ctx.textBaseline = 'middle';
     ctx.fillText(today.getFullYear()+'年 '+(today.getMonth()+1)+'月 '+today.getDate()+'日', W/2, H-15);
   }
@@ -4565,27 +4573,39 @@ function generateAllTalismans(dayStem, yongsinAnalysis, pillars) {
   return Object.keys(TALISMAN_NAMES);
 }
 
+// 부적 등급: 일반(노란종이) → 고급(빨간종이+금글씨) → 최상(검정종이+금글씨) → 신성(보라종이+은글씨)
+const TALISMAN_GRADES = {
+  'normal': { label:'일반', badge:'⬜', paperBg:['#e8d08c','#f0d898','#dcc478'], ink:'#b91c1c', inkLight:'#dc2626', borderColor:'#8b4513', badgeBg:'#78716c', badgeText:'#fff' },
+  'premium': { label:'고급', badge:'🟨', paperBg:['#c41e3a','#d42a46','#a01830'], ink:'#ffd700', inkLight:'#ffe44d', borderColor:'#ffd700', badgeBg:'#ca8a04', badgeText:'#000' },
+  'royal': { label:'최상', badge:'⬛', paperBg:['#0a0a1a','#1a1a2e','#0a0a1a'], ink:'#ffd700', inkLight:'#ffe44d', borderColor:'#D4AF37', badgeBg:'#1a1a2e', badgeText:'#ffd700' },
+  'divine': { label:'신성', badge:'🟪', paperBg:['#1a0a3e','#2a1a5e','#1a0a3e'], ink:'#c0c0c0', inkLight:'#e8e8e8', borderColor:'#9370db', badgeBg:'#7c3aed', badgeText:'#fff' }
+};
+
 const TALISMAN_NAMES = {
-  'mansadaegil': { title:'만사대길부', hanja:'萬事大吉符', category:'행운', desc:'모든 일이 잘 풀리는 만능 부적' },
-  'wealth': { title:'초재부', hanja:'招財符', category:'재물', desc:'재물과 금전을 끌어들이는 부적' },
-  'jaemul': { title:'재물자래부', hanja:'財物自來符', category:'재물', desc:'재물이 저절로 찾아오는 부적' },
-  'business': { title:'영업재수부', hanja:'營業財數符', category:'재물', desc:'사업과 장사가 번창하는 부적' },
-  'health': { title:'건강기원부', hanja:'健康祈願符', category:'건강', desc:'건강과 장수를 기원하는 부적' },
-  'love': { title:'인연성취부', hanja:'因緣成就符', category:'연애', desc:'운명의 인연을 만나게 하는 부적' },
-  'marriage': { title:'부부화합부', hanja:'夫婦和合符', category:'연애', desc:'부부 사이를 화목하게 하는 부적' },
-  'exam': { title:'합격부', hanja:'合格符', category:'학업', desc:'시험에 합격하게 하는 부적' },
-  'smart': { title:'총명부', hanja:'聰明符', category:'학업', desc:'머리가 맑아지고 학업이 잘되는 부적' },
-  'career': { title:'대초관직부', hanja:'大招官職符', category:'직장', desc:'승진과 취업이 잘되는 부적' },
-  'samjae': { title:'삼재예방부', hanja:'三災豫防符', category:'액막이', desc:'삼재(수·화·풍)를 막아주는 부적' },
-  'protect': { title:'벽사부', hanja:'僻邪符', category:'액막이', desc:'모든 나쁜 기운을 물리치는 부적' },
-  'ghost': { title:'귀신불침부', hanja:'鬼神不侵符', category:'액막이', desc:'귀신이 접근하지 못하게 하는 부적' },
-  'home': { title:'가택편안부', hanja:'家宅便安符', category:'가정', desc:'집안이 평안하고 안전한 부적' },
-  'wish': { title:'소망성취부', hanja:'所望成就符', category:'행운', desc:'소원이 이루어지는 부적' },
-  'travel': { title:'교통안전부', hanja:'交通安全符', category:'안전', desc:'여행과 이동이 안전한 부적' },
-  'chilseong': { title:'칠성부', hanja:'七星符', category:'행운', desc:'북두칠성의 기운을 받는 부적' },
-  'yongsin': { title:'용신부적', hanja:'用神符', category:'사주', desc:'사주의 용신 기운을 담은 부적' },
-  'manshyung': { title:'만사형통부', hanja:'萬事亨通符', category:'행운', desc:'만사가 막힘없이 형통하는 부적' },
-  'jeokgap': { title:'적갑부', hanja:'赤甲符', category:'최강', desc:'가장 강력한 만능 보호 부적' }
+  // 일반 등급 (노란 종이 + 빨간 글씨) - 기본 부적
+  'mansadaegil': { title:'만사대길부', hanja:'萬事大吉符', category:'행운', grade:'normal', desc:'모든 일이 잘 풀리는 만능 부적' },
+  'wealth': { title:'초재부', hanja:'招財符', category:'재물', grade:'normal', desc:'재물과 금전을 끌어들이는 부적' },
+  'health': { title:'건강기원부', hanja:'健康祈願符', category:'건강', grade:'normal', desc:'건강과 장수를 기원하는 부적' },
+  'love': { title:'인연성취부', hanja:'因緣成就符', category:'연애', grade:'normal', desc:'운명의 인연을 만나게 하는 부적' },
+  'exam': { title:'합격부', hanja:'合格符', category:'학업', grade:'normal', desc:'시험에 합격하게 하는 부적' },
+  'home': { title:'가택편안부', hanja:'家宅便安符', category:'가정', grade:'normal', desc:'집안이 평안하고 안전한 부적' },
+  'travel': { title:'교통안전부', hanja:'交通安全符', category:'안전', grade:'normal', desc:'여행과 이동이 안전한 부적' },
+  // 고급 등급 (빨간 종이 + 금색 글씨)
+  'jaemul': { title:'재물자래부', hanja:'財物自來符', category:'재물', grade:'premium', desc:'재물이 저절로 찾아오는 고급 부적' },
+  'business': { title:'영업재수부', hanja:'營業財數符', category:'재물', grade:'premium', desc:'사업이 번창하는 고급 부적' },
+  'marriage': { title:'부부화합부', hanja:'夫婦和合符', category:'연애', grade:'premium', desc:'부부 화목을 기원하는 고급 부적' },
+  'smart': { title:'총명부', hanja:'聰明符', category:'학업', grade:'premium', desc:'머리가 맑아지는 고급 부적' },
+  'career': { title:'대초관직부', hanja:'大招官職符', category:'직장', grade:'premium', desc:'승진과 취업을 돕는 고급 부적' },
+  'wish': { title:'소망성취부', hanja:'所望成就符', category:'행운', grade:'premium', desc:'소원을 이루는 고급 부적' },
+  // 최상 등급 (검정 종이 + 금색 글씨)
+  'samjae': { title:'삼재예방부', hanja:'三災豫防符', category:'액막이', grade:'royal', desc:'삼재를 막는 최상급 부적' },
+  'protect': { title:'벽사부', hanja:'僻邪符', category:'액막이', grade:'royal', desc:'모든 악을 물리치는 최상급 부적' },
+  'ghost': { title:'귀신불침부', hanja:'鬼神不侵符', category:'액막이', grade:'royal', desc:'귀신을 퇴치하는 최상급 부적' },
+  'chilseong': { title:'칠성부', hanja:'七星符', category:'행운', grade:'royal', desc:'북두칠성의 기운을 받는 최상급 부적' },
+  'manshyung': { title:'만사형통부', hanja:'萬事亨通符', category:'행운', grade:'royal', desc:'만사형통 최상급 부적' },
+  // 신성 등급 (보라 종이 + 은색 글씨) - 최고 등급
+  'yongsin': { title:'용신부적', hanja:'用神符', category:'사주', grade:'divine', desc:'사주 용신의 신성한 부적' },
+  'jeokgap': { title:'적갑부', hanja:'赤甲符', category:'최강', grade:'divine', desc:'가장 강력한 신성 만능 부적' }
 };
 
 </script>
@@ -6421,38 +6441,45 @@ function App() {
 
                 {/* 부적 그리드 */}
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                  {Object.entries(TALISMAN_NAMES).filter(([k,v]) => bujeokCat === '전체' || v.category === bujeokCat).map(([type, info]) => (
-                    <div key={type} className="text-center">
+                  {Object.entries(TALISMAN_NAMES).filter(([k,v]) => bujeokCat === '전체' || v.category === bujeokCat).map(([type, info]) => {
+                    const gr = TALISMAN_GRADES[info.grade || 'normal'];
+                    return (
+                    <div key={type} className="text-center relative">
+                      {/* 등급 배지 */}
+                      <div className="absolute top-1 right-1 z-10 text-xs px-1.5 py-0.5 rounded font-bold" style={{background:gr.badgeBg, color:gr.badgeText, fontSize:'0.6rem'}}>
+                        {gr.label}
+                      </div>
                       <canvas
                         ref={el => { if (el && result) generateTalisman(el, type, result.dayStem, result.yongsinAnalysis, result.pillars); }}
-                        className="w-full rounded-lg border-2 border-yellow-800/40 cursor-pointer hover:border-yellow-600 hover:shadow-lg hover:shadow-yellow-900/30 transition-all"
-                        style={{maxWidth:'180px', margin:'0 auto', background:'#e8d08c'}}
+                        className="w-full rounded-lg cursor-pointer hover:shadow-lg transition-all"
+                        style={{maxWidth:'180px', margin:'0 auto', border:'2px solid '+gr.borderColor+'66'}}
                         onClick={() => {
                           const bigCanvas = document.createElement('canvas');
                           generateTalisman(bigCanvas, type, result.dayStem, result.yongsinAnalysis, result.pillars);
                           const link = document.createElement('a');
-                          link.download = '부적_' + info.title + '.png';
+                          link.download = '부적_' + info.title + '_' + gr.label + '.png';
                           link.href = bigCanvas.toDataURL('image/png');
                           link.click();
                         }}
                       />
                       <div className="mt-1.5">
-                        <div className="text-xs font-bold text-gold">{info.title}</div>
-                        <div className="text-xs text-red-400/80 font-serif">{info.hanja}</div>
+                        <div className="text-xs font-bold" style={{color: info.grade==='divine'?'#9370db':info.grade==='royal'?'#ffd700':info.grade==='premium'?'#ca8a04':'#D4AF37'}}>{info.title}</div>
+                        <div className="text-xs font-serif" style={{color: gr.ink+'aa'}}>{info.hanja}</div>
                         <div className="text-xs text-gray-500 mt-0.5">{info.desc}</div>
                       </div>
                       <button onClick={() => {
                         const c = document.createElement('canvas');
                         generateTalisman(c, type, result.dayStem, result.yongsinAnalysis, result.pillars);
                         const link = document.createElement('a');
-                        link.download = '부적_' + info.title + '.png';
+                        link.download = '부적_' + info.title + '_' + gr.label + '.png';
                         link.href = c.toDataURL('image/png');
                         link.click();
-                      }} className="mt-1 text-xs px-3 py-1 rounded bg-yellow-900/30 text-yellow-600 border border-yellow-800/30 hover:bg-yellow-900/50 transition-all">
+                      }} className="mt-1 text-xs px-3 py-1 rounded transition-all" style={{background:gr.badgeBg+'33', color:gr.ink, border:'1px solid '+gr.borderColor+'44'}}>
                         📥 저장
                       </button>
                     </div>
-                  ))}
+                    );
+                  })}
                 </div>
 
                 <p className="text-xs text-gray-600 text-center mt-3">※ 전통 한국 부적 양식(黃紙+朱砂)으로 제작됩니다. 참고용이며 실제 종교적 효력을 보장하지 않습니다.</p>
