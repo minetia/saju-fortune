@@ -2693,6 +2693,127 @@ function getMonthlyCalendarFortune(dayStem, pillars, year, month) {
 }
 
 // ============================================================
+// 나와 맞는/안맞는 띠 & 오행 분석
+// ============================================================
+function analyzeMyCompatibility(dayStem, dayBranch, yearBranch) {
+  const dayElement = CHEONGAN[dayStem].element;
+  const SAENG = {'목':'화','화':'토','토':'금','금':'수','수':'목'};
+  const SAENG_ME = {'목':'수','화':'목','토':'화','금':'토','수':'금'};
+  const GEUK = {'목':'토','화':'금','토':'수','금':'목','수':'화'};
+  const GEUK_ME = {'목':'금','화':'수','토':'목','금':'화','수':'토'};
+
+  // === 띠 궁합 (지지 기준) ===
+  // 육합 (최고의 궁합)
+  const YUKHAP_PAIRS = {0:1,1:0, 2:11,11:2, 3:10,10:3, 4:9,9:4, 5:8,8:5, 6:7,7:6};
+  // 삼합 (좋은 궁합)
+  const SAMHAP_GROUPS = [[2,6,10],[5,9,1],[8,0,4],[11,3,7]];
+  // 충 (갈등 관계)
+  const CHUNG_PAIRS = {0:6,6:0, 1:7,7:1, 2:8,8:2, 3:9,9:3, 4:10,10:4, 5:11,11:5};
+  // 형 (긴장 관계)
+  const HYUNG_MAP = {2:[5,8],5:[2,8],8:[2,5], 1:[10,7],10:[1,7],7:[1,10], 0:[3],3:[0]};
+  // 해 (은밀한 해로움)
+  const HAE_PAIRS = {0:7,7:0, 1:6,6:1, 2:5,5:2, 3:4,4:3, 8:11,11:8, 9:10,10:9};
+  // 원진 (미묘한 갈등)
+  const WONJIN_PAIRS = {0:7,1:6,2:5,3:4,4:3,5:2,6:1,7:0,8:11,9:10,10:9,11:8};
+
+  const myBranch = dayBranch; // 일지 기준
+  const animals = ['쥐','소','호랑이','토끼','용','뱀','말','양','원숭이','닭','개','돼지'];
+  const emojis = ['🐭','🐂','🐯','🐰','🐲','🐍','🐴','🐑','🐵','🐔','🐶','🐷'];
+
+  const zodiacCompat = [];
+  for (let i = 0; i < 12; i++) {
+    if (i === myBranch) continue; // 자기 자신 제외
+    let score = 50;
+    let relations = [];
+
+    // 육합 체크
+    if (YUKHAP_PAIRS[myBranch] === i) { score += 30; relations.push({type:'육합',desc:'서로 끌리는 최고의 궁합',color:'#4ade80'}); }
+    // 삼합 체크
+    const mySamhap = SAMHAP_GROUPS.find(g => g.includes(myBranch));
+    if (mySamhap && mySamhap.includes(i)) { score += 18; relations.push({type:'삼합',desc:'함께하면 큰 힘이 되는 관계',color:'#22d3ee'}); }
+    // 충 체크
+    if (CHUNG_PAIRS[myBranch] === i) { score -= 25; relations.push({type:'충',desc:'갈등이 많지만 자극이 되는 관계',color:'#f87171'}); }
+    // 형 체크
+    if (HYUNG_MAP[myBranch] && HYUNG_MAP[myBranch].includes(i)) { score -= 15; relations.push({type:'형',desc:'긴장과 시련이 있는 관계',color:'#fb923c'}); }
+    // 해 체크
+    if (HAE_PAIRS[myBranch] === i) { score -= 12; relations.push({type:'해',desc:'은밀한 방해가 있을 수 있는 관계',color:'#a78bfa'}); }
+    // 원진 체크
+    if (WONJIN_PAIRS[myBranch] === i) { score -= 10; relations.push({type:'원진',desc:'만나면 반갑지만 오래 있으면 피곤한 관계',color:'#f59e0b'}); }
+
+    // 같은 오행 보너스
+    if (JIJI[myBranch].element === JIJI[i].element) { score += 8; relations.push({type:'동오행',desc:'비슷한 성향으로 이해가 쉬움',color:'#60a5fa'}); }
+
+    score = Math.max(15, Math.min(98, score));
+
+    let grade;
+    if (score >= 80) grade = '최고';
+    else if (score >= 65) grade = '좋음';
+    else if (score >= 45) grade = '보통';
+    else if (score >= 30) grade = '주의';
+    else grade = '상극';
+
+    zodiacCompat.push({
+      branch: i, animal: animals[i], emoji: emojis[i],
+      hanja: JIJI[i].hanja, element: JIJI[i].element,
+      score, grade, relations
+    });
+  }
+
+  // 점수순 정렬
+  zodiacCompat.sort((a, b) => b.score - a.score);
+  const bestZodiac = zodiacCompat.slice(0, 3);
+  const worstZodiac = zodiacCompat.slice(-3).reverse();
+
+  // === 오행 궁합 (일간 오행 기준) ===
+  const ohengCompat = [];
+  const ohengNames = ['목','화','토','금','수'];
+  const ohengHanja = ['木','火','土','金','水'];
+  const ohengEmoji = ['🌳','🔥','⛰️','⚔️','💧'];
+
+  ohengNames.forEach((el, i) => {
+    let score = 50;
+    let relation = '';
+    let relType = '';
+
+    if (el === dayElement) {
+      score = 65; relation = '같은 오행으로 서로 이해하고 공감합니다. 동료·친구 관계에 좋습니다.'; relType = '비화(比和)';
+    } else if (SAENG[dayElement] === el) {
+      score = 60; relation = '내가 생해주는 오행입니다. 내 에너지를 쏟지만 보람이 있습니다.'; relType = '내가 생(生)';
+    } else if (SAENG_ME[dayElement] === el) {
+      score = 85; relation = '나를 생해주는 오행입니다! 나에게 힘과 도움을 줍니다.'; relType = '나를 생(生)';
+    } else if (GEUK[dayElement] === el) {
+      score = 55; relation = '내가 극하는 오행입니다. 내가 통제하지만 에너지 소모가 있습니다.'; relType = '내가 극(剋)';
+    } else if (GEUK_ME[dayElement] === el) {
+      score = 30; relation = '나를 극하는 오행입니다. 압박과 시련을 주지만 성장의 기회도 됩니다.'; relType = '나를 극(剋)';
+    }
+
+    ohengCompat.push({
+      element: el, hanja: ohengHanja[i], emoji: ohengEmoji[i],
+      score, relation, relType,
+      isMe: el === dayElement,
+      color: getElementColor(el)
+    });
+  });
+
+  ohengCompat.sort((a, b) => b.score - a.score);
+  const bestElement = ohengCompat[0];
+  const worstElement = ohengCompat[ohengCompat.length - 1];
+
+  return {
+    myAnimal: animals[myBranch],
+    myEmoji: emojis[myBranch],
+    myElement: dayElement,
+    myBranch,
+    zodiacCompat,
+    bestZodiac,
+    worstZodiac,
+    ohengCompat,
+    bestElement,
+    worstElement
+  };
+}
+
+// ============================================================
 // 택일(擇日) - 사주 기반 좋은 날짜 추천
 // ============================================================
 function getAuspiciousDates(dayStem, pillars, year, month, purpose) {
@@ -4889,7 +5010,116 @@ function App() {
               </AccordionSection>
             )}
 
-            
+            {/* ★ 나와 맞는/안맞는 띠 & 오행 */}
+            <AccordionSection title="띠·오행 궁합 (相性分析)" subtitle="나와 잘 맞는 띠와 오행, 주의해야 할 관계" delay={690}>
+              {(() => {
+                const compat = analyzeMyCompatibility(result.dayStem, result.pillars[2].branch, result.pillars[0].branch);
+                return (
+                  <div className="space-y-6">
+                    {/* 내 정보 */}
+                    <div className="text-center p-3 rounded-lg bg-gold/5 border border-gold/20">
+                      <span className="text-3xl">{compat.myEmoji}</span>
+                      <div className="text-sm text-gold font-bold mt-1">나의 띠: {compat.myAnimal}띠 · 일간: {CHEONGAN[result.dayStem].name}{compat.myElement}({{'목':'木','화':'火','토':'土','금':'金','수':'水'}[compat.myElement]})</div>
+                    </div>
+
+                    {/* 나와 맞는 띠 TOP 3 */}
+                    <div>
+                      <div className="text-sm font-bold text-green-400 mb-2">✅ 나와 가장 잘 맞는 띠 TOP 3</div>
+                      <div className="grid grid-cols-3 gap-2">
+                        {compat.bestZodiac.map((z, i) => (
+                          <div key={i} className="p-3 rounded-lg border border-green-500/30 bg-green-500/5 text-center">
+                            <div className="text-2xl">{z.emoji}</div>
+                            <div className="text-sm font-bold text-green-400">{z.animal}띠</div>
+                            <div className="text-lg font-bold text-green-300">{z.score}점</div>
+                            {z.relations.map((r,j) => (
+                              <span key={j} className="inline-block text-xs px-1.5 py-0.5 rounded mt-1 mr-0.5" style={{background:r.color+'22',color:r.color}}>{r.type}</span>
+                            ))}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* 나와 안맞는 띠 WORST 3 */}
+                    <div>
+                      <div className="text-sm font-bold text-red-400 mb-2">⚠️ 주의해야 할 띠 WORST 3</div>
+                      <div className="grid grid-cols-3 gap-2">
+                        {compat.worstZodiac.map((z, i) => (
+                          <div key={i} className="p-3 rounded-lg border border-red-500/30 bg-red-500/5 text-center">
+                            <div className="text-2xl">{z.emoji}</div>
+                            <div className="text-sm font-bold text-red-400">{z.animal}띠</div>
+                            <div className="text-lg font-bold text-red-300">{z.score}점</div>
+                            {z.relations.map((r,j) => (
+                              <span key={j} className="inline-block text-xs px-1.5 py-0.5 rounded mt-1 mr-0.5" style={{background:r.color+'22',color:r.color}}>{r.type}</span>
+                            ))}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* 전체 띠 궁합표 */}
+                    <div>
+                      <div className="text-sm font-bold text-gold mb-2">📊 전체 띠 궁합표</div>
+                      <div className="grid grid-cols-4 md:grid-cols-6 gap-1.5">
+                        {compat.zodiacCompat.map((z, i) => (
+                          <div key={i} className={'p-2 rounded-lg border text-center text-xs ' +
+                            (z.grade==='최고'?'border-green-500/40 bg-green-500/10':
+                             z.grade==='좋음'?'border-green-500/20 bg-green-500/5':
+                             z.grade==='보통'?'border-gray-600 bg-bg-card2':
+                             z.grade==='주의'?'border-orange-500/30 bg-orange-500/5':
+                             'border-red-500/30 bg-red-500/5')}>
+                            <div className="text-lg">{z.emoji}</div>
+                            <div className="font-bold text-gray-300">{z.animal}</div>
+                            <div className={'font-bold ' + (z.score>=70?'text-green-400':z.score>=50?'text-yellow-400':'text-red-400')}>{z.score}</div>
+                            <div className={'text-xs ' + (z.grade==='최고'?'text-green-400':z.grade==='좋음'?'text-green-300':z.grade==='주의'?'text-orange-400':z.grade==='상극'?'text-red-400':'text-gray-500')}>{z.grade}</div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* 구분선 */}
+                    <div className="border-t border-gray-700 my-4"></div>
+
+                    {/* 오행 궁합 */}
+                    <div>
+                      <div className="text-sm font-bold text-gold mb-3">🌿 나와 맞는 오행 · 안 맞는 오행</div>
+                      <div className="grid grid-cols-5 gap-2 mb-4">
+                        {compat.ohengCompat.map((o, i) => (
+                          <div key={i} className={'p-3 rounded-lg border text-center ' +
+                            (o.isMe ? 'border-gold bg-gold/10' :
+                             o.score>=80 ? 'border-green-500/40 bg-green-500/10' :
+                             o.score>=60 ? 'border-gray-600 bg-bg-card2' :
+                             'border-red-500/30 bg-red-500/5')}>
+                            <div className="text-2xl">{o.emoji}</div>
+                            <div className="text-lg font-serif font-bold" style={{color:o.color}}>{o.hanja}</div>
+                            <div className="text-xs" style={{color:o.color}}>{o.element}</div>
+                            <div className={'text-lg font-bold mt-1 ' + (o.score>=70?'text-green-400':o.score>=50?'text-yellow-400':'text-red-400')}>{o.score}</div>
+                            <div className="text-xs text-gray-500 mt-0.5">{o.relType}</div>
+                            {o.isMe && <div className="text-xs text-gold mt-0.5">← 나</div>}
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* 최고 & 최악 오행 설명 */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div className="p-3 rounded-lg border border-green-500/30 bg-green-500/5">
+                          <div className="text-sm font-bold text-green-400 mb-1">{compat.bestElement.emoji} 가장 좋은 오행: {compat.bestElement.element}({compat.bestElement.hanja})</div>
+                          <p className="text-xs text-gray-300">{compat.bestElement.relation}</p>
+                          <p className="text-xs text-green-400/70 mt-1">→ {compat.bestElement.element} 오행의 사람, 색상, 방향, 음식이 나에게 도움이 됩니다.</p>
+                        </div>
+                        <div className="p-3 rounded-lg border border-red-500/30 bg-red-500/5">
+                          <div className="text-sm font-bold text-red-400 mb-1">{compat.worstElement.emoji} 주의할 오행: {compat.worstElement.element}({compat.worstElement.hanja})</div>
+                          <p className="text-xs text-gray-300">{compat.worstElement.relation}</p>
+                          <p className="text-xs text-red-400/70 mt-1">→ {compat.worstElement.element} 기운이 강한 시기나 사람에게는 주의가 필요합니다.</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <p className="text-xs text-gray-600 text-center mt-3">※ 궁합은 참고용이며, 실제 관계는 서로의 노력이 가장 중요합니다.</p>
+                  </div>
+                );
+              })()}
+            </AccordionSection>
+
             </>}
 
             {/* ===== 그룹 4 계속: 특수 분석 ===== */}
