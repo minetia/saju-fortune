@@ -2693,6 +2693,361 @@ function getMonthlyCalendarFortune(dayStem, pillars, year, month) {
 }
 
 // ============================================================
+// 택일(擇日) - 사주 기반 좋은 날짜 추천
+// ============================================================
+function getAuspiciousDates(dayStem, pillars, year, month, purpose) {
+  const purposes = {
+    'wedding': { name:'결혼', icon:'💍', good:[5,9,2], bad:[6,1], desc:'결혼·약혼에 좋은 날' },
+    'moving': { name:'이사', icon:'🏠', good:[7,5,0], bad:[6,3], desc:'이사·입주에 좋은 날' },
+    'business': { name:'개업', icon:'🏪', good:[4,5,7], bad:[6,1], desc:'개업·사업 시작에 좋은 날' },
+    'interview': { name:'면접', icon:'💼', good:[7,9,2], bad:[6,1], desc:'면접·시험에 좋은 날' },
+    'travel': { name:'여행', icon:'✈️', good:[2,4,0], bad:[6,8], desc:'여행·출장에 좋은 날' },
+    'hospital': { name:'수술', icon:'🏥', good:[9,7,5], bad:[1,3], desc:'수술·치료에 좋은 날' },
+    'contract': { name:'계약', icon:'📝', good:[5,7,4], bad:[1,6], desc:'계약·서류에 좋은 날' },
+    'propose': { name:'고백', icon:'❤️', good:[5,2,9], bad:[6,3], desc:'고백·프로포즈에 좋은 날' }
+  };
+
+  const p = purposes[purpose] || purposes['wedding'];
+  const dayBranch = pillars[2].branch;
+  const daysInMonth = new Date(year, month, 0).getDate();
+  const results = [];
+
+  for (let d = 1; d <= daysInMonth; d++) {
+    const dp = getDayPillar(year, month, d);
+    const sipsung = getSipsung(dayStem, dp.stem);
+    const ship2 = SHIP2_TABLE[dayStem][dp.branch];
+    const dateObj = new Date(year, month - 1, d);
+    if (dateObj < new Date()) continue; // 과거 날짜 스킵
+
+    let score = 50;
+    if (p.good.includes(sipsung)) score += 20;
+    if (p.bad.includes(sipsung)) score -= 15;
+    if ([0,3,4].includes(ship2)) score += 10; // 장생,건록,제왕
+    if ([7,9].includes(ship2)) score -= 10; // 사,절
+
+    // 합충 체크
+    let hasHap = false, hasChung = false;
+    YUKHAP.forEach(([a,b]) => { if ((dayBranch===a&&dp.branch===b)||(dayBranch===b&&dp.branch===a)) hasHap = true; });
+    if (Math.abs(dayBranch - dp.branch) === 6) hasChung = true;
+    if (hasHap) score += 12;
+    if (hasChung) score -= 12;
+
+    score = Math.max(20, Math.min(98, score));
+
+    if (score >= 65) {
+      results.push({
+        day: d, weekday: ['일','월','화','수','목','금','토'][dateObj.getDay()],
+        stem: dp.stem, branch: dp.branch, sipsung, ship2, score,
+        hasHap, hasChung,
+        grade: score >= 85 ? '대길' : score >= 75 ? '길' : '소길'
+      });
+    }
+  }
+
+  results.sort((a, b) => b.score - a.score);
+  return { purpose: p, results: results.slice(0, 10), year, month };
+}
+
+// ============================================================
+// 이름풀이(姓名學) - 한글 성명학 분석
+// ============================================================
+const HANGUL_STROKES = {
+  'ㄱ':2,'ㄲ':4,'ㄴ':2,'ㄷ':3,'ㄸ':6,'ㄹ':5,'ㅁ':4,'ㅂ':4,'ㅃ':8,'ㅅ':2,'ㅆ':4,
+  'ㅇ':1,'ㅈ':3,'ㅉ':6,'ㅊ':4,'ㅋ':3,'ㅌ':4,'ㅍ':4,'ㅎ':3,
+  'ㅏ':2,'ㅐ':3,'ㅑ':3,'ㅒ':4,'ㅓ':2,'ㅔ':3,'ㅕ':3,'ㅖ':4,'ㅗ':2,'ㅘ':4,'ㅙ':5,
+  'ㅚ':3,'ㅛ':3,'ㅜ':2,'ㅝ':4,'ㅞ':5,'ㅟ':3,'ㅠ':3,'ㅡ':1,'ㅢ':2,'ㅣ':1
+};
+
+function decomposeHangul(char) {
+  const code = char.charCodeAt(0) - 0xAC00;
+  if (code < 0 || code > 11171) return { cho: '', jung: '', jong: '' };
+  const cho = Math.floor(code / 588);
+  const jung = Math.floor((code % 588) / 28);
+  const jong = code % 28;
+  const CHO = ['ㄱ','ㄲ','ㄴ','ㄷ','ㄸ','ㄹ','ㅁ','ㅂ','ㅃ','ㅅ','ㅆ','ㅇ','ㅈ','ㅉ','ㅊ','ㅋ','ㅌ','ㅍ','ㅎ'];
+  const JUNG = ['ㅏ','ㅐ','ㅑ','ㅒ','ㅓ','ㅔ','ㅕ','ㅖ','ㅗ','ㅘ','ㅙ','ㅚ','ㅛ','ㅜ','ㅝ','ㅞ','ㅟ','ㅠ','ㅡ','ㅢ','ㅣ'];
+  const JONG = ['','ㄱ','ㄲ','ㄳ','ㄴ','ㄵ','ㄶ','ㄷ','ㄹ','ㄺ','ㄻ','ㄼ','ㄽ','ㄾ','ㄿ','ㅀ','ㅁ','ㅂ','ㅄ','ㅅ','ㅆ','ㅇ','ㅈ','ㅊ','ㅋ','ㅌ','ㅍ','ㅎ'];
+  return { cho: CHO[cho], jung: JUNG[jung], jong: JONG[jong] };
+}
+
+function getCharStrokes(char) {
+  const d = decomposeHangul(char);
+  let strokes = 0;
+  strokes += HANGUL_STROKES[d.cho] || 0;
+  strokes += HANGUL_STROKES[d.jung] || 0;
+  if (d.jong) {
+    if (d.jong.length === 2) {
+      strokes += (HANGUL_STROKES[d.jong[0]] || 0) + (HANGUL_STROKES[d.jong[1]] || 0);
+    } else {
+      strokes += HANGUL_STROKES[d.jong] || 0;
+    }
+  }
+  return strokes;
+}
+
+function analyzeName(fullName) {
+  if (!fullName || fullName.length < 2) return null;
+  const chars = fullName.split('');
+  const strokes = chars.map(c => getCharStrokes(c));
+  const total = strokes.reduce((a, b) => a + b, 0);
+
+  // 음양 분석
+  const yinYang = strokes.map(s => s % 2 === 0 ? '음' : '양');
+
+  // 오행 매핑 (획수의 일의 자리)
+  const STROKE_ELEMENT = { 1:'목', 2:'목', 3:'화', 4:'화', 5:'토', 6:'토', 7:'금', 8:'금', 9:'수', 0:'수' };
+  const elements = strokes.map(s => STROKE_ELEMENT[s % 10]);
+
+  // 원격(元格): 성 획수, 형격(亨格): 성+이름 첫 글자, 이격(利格): 이름, 정격(貞格): 전체
+  const wonGyeok = strokes[0];
+  const hyungGyeok = strokes.length >= 2 ? strokes[0] + strokes[1] : strokes[0];
+  const yiGyeok = strokes.length >= 3 ? strokes[1] + strokes[2] : strokes[strokes.length - 1];
+  const jeongGyeok = total;
+
+  // 수리 해석 (81수리 간략 버전)
+  const SURI_LUCK = {
+    1:'대길',3:'길',5:'대길',6:'대길',7:'길',8:'대길',11:'대길',13:'대길',15:'대길',
+    16:'대길',17:'길',18:'대길',21:'대길',23:'대길',24:'대길',25:'길',29:'길',
+    31:'대길',32:'길',33:'대길',35:'길',37:'대길',39:'길',41:'대길',45:'대길',
+    47:'길',48:'대길',52:'길',57:'길',61:'길',63:'길',65:'대길',67:'길',68:'대길',
+    2:'흉',4:'흉',9:'흉',10:'흉',12:'흉',14:'흉',19:'흉',20:'흉',22:'흉',
+    26:'흉',27:'흉',28:'흉',30:'흉',34:'흉',36:'흉',40:'흉',42:'흉',43:'흉',
+    44:'흉',46:'흉',49:'흉',50:'흉',54:'흉',56:'흉',59:'흉',60:'흉',62:'흉',64:'흉',66:'흉'
+  };
+
+  function getLuck(n) { return SURI_LUCK[n] || (n % 2 === 1 ? '길' : '보통'); }
+
+  // 상생상극 체크
+  const SAENG = {'목':'화','화':'토','토':'금','금':'수','수':'목'};
+  const GEUK = {'목':'토','화':'금','토':'수','금':'목','수':'화'};
+  let harmony = 0;
+  for (let i = 0; i < elements.length - 1; i++) {
+    if (SAENG[elements[i]] === elements[i+1] || SAENG[elements[i+1]] === elements[i]) harmony++;
+    else if (GEUK[elements[i]] === elements[i+1] || GEUK[elements[i+1]] === elements[i]) harmony--;
+  }
+
+  const totalScore = Math.max(30, Math.min(98, 60 + (getLuck(total)==='대길'?20:getLuck(total)==='길'?10:getLuck(total)==='흉'?-15:0) + harmony * 8));
+
+  return {
+    name: fullName, chars, strokes, total,
+    yinYang, elements,
+    wonGyeok: { value: wonGyeok, luck: getLuck(wonGyeok), desc: '초년운 (0~20세)' },
+    hyungGyeok: { value: hyungGyeok, luck: getLuck(hyungGyeok), desc: '청년운 (20~40세)' },
+    yiGyeok: { value: yiGyeok, luck: getLuck(yiGyeok), desc: '중년운 (40~60세)' },
+    jeongGyeok: { value: jeongGyeok, luck: getLuck(jeongGyeok), desc: '말년운·총운' },
+    harmony: harmony > 0 ? '상생 조합 (좋음)' : harmony < 0 ? '상극 조합 (주의)' : '평범한 조합',
+    totalScore
+  };
+}
+
+// ============================================================
+// 주역점(周易占) - 64괘 점치기
+// ============================================================
+const HEXAGRAM_DATA = [
+  {name:'건괘',hanja:'乾卦',symbol:'☰☰',meaning:'하늘 위에 하늘, 강건함의 극치',fortune:'모든 일이 크게 형통하니 바르게 하면 이롭다. 큰 뜻을 품고 전진하라.',advice:'자신감을 갖되 겸손을 잃지 마세요. 리더십을 발휘할 때입니다.'},
+  {name:'곤괘',hanja:'坤卦',symbol:'☷☷',meaning:'땅 위에 땅, 유순함의 극치',fortune:'유순하게 따르면 이로우니 서남쪽이 좋다. 먼저 나서지 말고 따르라.',advice:'인내하며 때를 기다리세요. 조용히 준비하면 큰 결실이 옵니다.'},
+  {name:'수뢰둔',hanja:'水雷屯',symbol:'☵☳',meaning:'구름과 천둥, 시작의 어려움',fortune:'시작이 어렵지만 바르게 하면 크게 이롭다. 서두르지 말라.',advice:'새로운 시작에 어려움이 있지만 포기하지 마세요. 도움을 구하세요.'},
+  {name:'산수몽',hanja:'山水蒙',symbol:'☶☵',meaning:'산 아래 샘, 어리석음을 깨우침',fortune:'배움을 구하면 이롭다. 처음 물으면 알려주되 여러 번 물으면 모독이다.',advice:'배우는 자세로 임하세요. 스승이나 멘토를 찾으면 좋습니다.'},
+  {name:'수천수',hanja:'水天需',symbol:'☵☰',meaning:'하늘 위에 구름, 기다림',fortune:'성실하면 크게 형통하니 기다리면 이롭다. 큰물을 건너도 좋다.',advice:'조급해하지 마세요. 때가 올 때까지 실력을 쌓으세요.'},
+  {name:'천수송',hanja:'天水訟',symbol:'☰☵',meaning:'하늘과 물의 다툼',fortune:'성실하되 두려워하면 중간이 길하고 끝은 흉하다. 소송을 피하라.',advice:'분쟁을 피하고 타협하세요. 법적 문제에 주의하세요.'},
+  {name:'지수사',hanja:'地水師',symbol:'☷☵',meaning:'땅 안에 물, 군대',fortune:'올바른 장수가 이끌면 길하다. 경험 많은 사람을 따르라.',advice:'조직적으로 움직이세요. 경험자의 조언을 따르면 좋습니다.'},
+  {name:'수지비',hanja:'水地比',symbol:'☵☷',meaning:'땅 위에 물, 친밀함',fortune:'다시 점치면 길하다. 늦게 오는 자는 흉하니 서둘러라.',advice:'좋은 사람들과 함께하세요. 네트워킹이 중요한 시기입니다.'},
+  {name:'풍천소축',hanja:'風天小畜',symbol:'☴☰',meaning:'하늘 위에 바람, 작은 축적',fortune:'형통하나 아직 때가 아니다. 조금씩 모아라.',advice:'큰 일보다 작은 것부터 차근차근 준비하세요.'},
+  {name:'천택리',hanja:'天澤履',symbol:'☰☱',meaning:'하늘 아래 못, 예의 바른 행동',fortune:'호랑이 꼬리를 밟아도 물지 않으니 형통하다.',advice:'예의 바르게 행동하면 위험도 피해갑니다. 분수를 지키세요.'},
+  {name:'지천태',hanja:'地天泰',symbol:'☷☰',meaning:'하늘과 땅이 소통, 태평',fortune:'작은 것이 가고 큰 것이 오니 길하고 형통하다.',advice:'모든 일이 순조로운 시기! 적극적으로 추진하세요.'},
+  {name:'천지비',hanja:'天地否',symbol:'☰☷',meaning:'하늘과 땅이 막힘',fortune:'좋지 않다. 군자가 바르게 해도 이롭지 않다.',advice:'어려운 시기이니 새로운 일을 벌이지 마세요. 인내하세요.'},
+  {name:'천화동인',hanja:'天火同人',symbol:'☰☲',meaning:'하늘 아래 불, 뜻을 같이함',fortune:'들판에서 사람을 모으면 형통하다. 큰물을 건너면 이롭다.',advice:'뜻이 맞는 사람과 협력하세요. 팀워크가 성공의 열쇠입니다.'},
+  {name:'화천대유',hanja:'火天大有',symbol:'☲☰',meaning:'하늘 위에 불, 크게 소유함',fortune:'크게 형통하다.',advice:'큰 성과를 거둘 수 있는 시기입니다! 자신감을 가지세요.'},
+  {name:'지산겸',hanja:'地山謙',symbol:'☷☶',meaning:'땅 아래 산, 겸손',fortune:'형통하니 군자가 마침이 있다.',advice:'겸손하면 모든 일이 잘 풀립니다. 자랑하지 마세요.'},
+  {name:'뇌지예',hanja:'雷地豫',symbol:'☳☷',meaning:'땅 위에 천둥, 즐거움',fortune:'군대를 일으키고 출정해도 이롭다.',advice:'즐거운 마음으로 일하면 좋은 결과가 옵니다. 축하할 일이 생깁니다.'},
+  {name:'택뢰수',hanja:'澤雷隨',symbol:'☱☳',meaning:'못 아래 천둥, 따름',fortune:'크게 형통하고 이로우니 바르게 하라.',advice:'흐름에 순응하세요. 유연하게 대처하면 좋은 결과가 옵니다.'},
+  {name:'산풍고',hanja:'山風蠱',symbol:'☶☴',meaning:'산 아래 바람, 부패를 바로잡음',fortune:'크게 형통하니 큰물을 건너면 이롭다.',advice:'문제를 직시하고 바로잡으세요. 개혁이 필요한 때입니다.'},
+  {name:'지택림',hanja:'地澤臨',symbol:'☷☱',meaning:'못 위에 땅, 다가감',fortune:'크게 형통하고 바르면 이롭다. 8월이 되면 흉하다.',advice:'좋은 기회가 다가오고 있습니다. 적극적으로 잡으세요.'},
+  {name:'풍지관',hanja:'風地觀',symbol:'☴☷',meaning:'땅 위에 바람, 관찰',fortune:'제사를 지내기 전에 손을 씻으면 믿음이 있다.',advice:'상황을 잘 관찰하고 판단하세요. 성급한 결정을 피하세요.'},
+  {name:'화뢰서합',hanja:'火雷噬嗑',symbol:'☲☳',meaning:'천둥과 번개, 장애를 깨뜸',fortune:'형통하니 소송에 쓰면 이롭다.',advice:'장애물을 과감히 제거하세요. 결단력이 필요합니다.'},
+  {name:'산화비',hanja:'山火賁',symbol:'☶☲',meaning:'산 아래 불, 꾸밈',fortune:'형통하나 약간의 바름이 이롭다.',advice:'외적인 꾸밈보다 내면을 가꾸세요. 본질에 집중하세요.'},
+  {name:'산지박',hanja:'山地剝',symbol:'☶☷',meaning:'땅 위에 산, 벗겨짐',fortune:'갈 바가 이롭지 않다.',advice:'손실에 주의하세요. 새로운 일을 시작하지 마세요.'},
+  {name:'지뢰복',hanja:'地雷復',symbol:'☷☳',meaning:'땅 아래 천둥, 되돌아옴',fortune:'형통하니 출입에 질병이 없고 벗이 와도 허물이 없다.',advice:'새로운 시작의 기운! 잃었던 것이 돌아옵니다.'},
+  {name:'천뢰무망',hanja:'天雷無妄',symbol:'☰☳',meaning:'하늘 아래 천둥, 뜻밖의 일',fortune:'크게 형통하고 바르면 이롭다. 바르지 않으면 재앙이 있다.',advice:'진실되게 행동하세요. 거짓은 반드시 탄로납니다.'},
+  {name:'산천대축',hanja:'山天大畜',symbol:'☶☰',meaning:'하늘 위에 산, 크게 모음',fortune:'바르면 이롭다. 집에서 먹지 않으면 길하다.',advice:'크게 축적할 수 있는 시기입니다. 밖에서 활동하세요.'},
+  {name:'산뢰이',hanja:'山雷頤',symbol:'☶☳',meaning:'산 아래 천둥, 기름',fortune:'바르면 길하다. 입과 먹는 것을 살펴라.',advice:'건강관리와 식생활에 신경 쓰세요. 말조심하세요.'},
+  {name:'택풍대과',hanja:'澤風大過',symbol:'☱☴',meaning:'못 아래 바람, 크게 지나침',fortune:'들보가 휘어지니 갈 바가 있으면 형통하다.',advice:'무리한 일에 주의하세요. 균형을 잡는 것이 중요합니다.'},
+  {name:'감괘',hanja:'坎卦',symbol:'☵☵',meaning:'물 위에 물, 위험',fortune:'믿음이 있으면 마음이 형통하고 행하면 존경받는다.',advice:'어려운 상황이지만 신념을 지키세요. 반드시 빠져나갑니다.'},
+  {name:'이괘',hanja:'離卦',symbol:'☲☲',meaning:'불 위에 불, 밝음',fortune:'바르면 이롭고 형통하다. 암소를 기르면 길하다.',advice:'밝은 지혜로 판단하세요. 학문과 예술에 유리합니다.'},
+  {name:'택산함',hanja:'澤山咸',symbol:'☱☶',meaning:'산 위에 못, 감응',fortune:'형통하고 바르면 이롭다. 여자를 취하면 길하다.',advice:'좋은 인연이 찾아옵니다. 연애운이 좋습니다!'},
+  {name:'뇌풍항',hanja:'雷風恒',symbol:'☳☴',meaning:'바람 위에 천둥, 항상함',fortune:'형통하고 허물이 없으며 바르면 이롭다.',advice:'꾸준히 하던 일을 지속하세요. 변화보다 일관성이 중요합니다.'},
+  {name:'천산둔',hanja:'天山遯',symbol:'☰☶',meaning:'산 위에 하늘, 물러남',fortune:'형통하니 작은 바름이 이롭다.',advice:'때로는 물러남이 전진입니다. 잠시 쉬어가세요.'},
+  {name:'뇌천대장',hanja:'雷天大壯',symbol:'☳☰',meaning:'하늘 위에 천둥, 크게 씩씩함',fortune:'바르면 이롭다.',advice:'힘이 넘치는 시기! 하지만 과감함에 신중함을 더하세요.'},
+  {name:'화지진',hanja:'火地晉',symbol:'☲☷',meaning:'땅 위에 불, 나아감',fortune:'강후가 말을 하사받으니 하루에 세 번 접견한다.',advice:'승진·발전의 기회! 적극적으로 나서세요.'},
+  {name:'지화명이',hanja:'地火明夷',symbol:'☷☲',meaning:'불이 땅 속에, 밝음이 상함',fortune:'어려운 중에 바르면 이롭다.',advice:'재능을 숨기고 때를 기다리세요. 지금은 드러내지 마세요.'},
+  {name:'풍화가인',hanja:'風火家人',symbol:'☴☲',meaning:'불 위에 바람, 가정',fortune:'여자가 바르면 이롭다.',advice:'가정에 집중하세요. 가족 간의 화합이 모든 일의 기초입니다.'},
+  {name:'화택규',hanja:'火澤睽',symbol:'☲☱',meaning:'못 위에 불, 어긋남',fortune:'작은 일에 길하다.',advice:'의견 차이가 있지만 소통하면 해결됩니다. 작은 일부터.'},
+  {name:'수산건',hanja:'水山蹇',symbol:'☵☶',meaning:'산 위에 물, 어려움',fortune:'서남쪽이 이롭고 동북쪽은 이롭지 않다.',advice:'어려움이 있으니 도움을 구하세요. 혼자 해결하려 마세요.'},
+  {name:'뇌수해',hanja:'雷水解',symbol:'☳☵',meaning:'물 위에 천둥, 풀림',fortune:'서남쪽이 이롭다. 갈 바가 없으면 오면 길하다.',advice:'문제가 풀리기 시작합니다! 빨리 행동하세요.'},
+  {name:'산택손',hanja:'山澤損',symbol:'☶☱',meaning:'못 위에 산, 덜어냄',fortune:'믿음이 있으면 크게 길하고 허물이 없다.',advice:'불필요한 것을 줄이세요. 비우면 채워집니다.'},
+  {name:'풍뢰익',hanja:'風雷益',symbol:'☴☳',meaning:'천둥 위에 바람, 더함',fortune:'갈 바가 있으면 이롭고 큰물을 건너면 이롭다.',advice:'적극적으로 행동하면 큰 이익이 옵니다!'},
+  {name:'택천쾌',hanja:'澤天夬',symbol:'☱☰',meaning:'하늘 위에 못, 결단',fortune:'왕의 조정에 알려야 하니 성실히 부르짖어라.',advice:'결단을 내릴 때입니다. 과감하게 결정하세요.'},
+  {name:'천풍구',hanja:'天風姤',symbol:'☰☴',meaning:'하늘 아래 바람, 만남',fortune:'여자가 씩씩하니 장가들지 마라.',advice:'뜻밖의 만남이 있습니다. 첫인상에 속지 마세요.'},
+  {name:'택지췌',hanja:'澤地萃',symbol:'☱☷',meaning:'땅 위에 못, 모임',fortune:'형통하니 왕이 사당에 이르면 큰 사람을 만나 이롭다.',advice:'좋은 사람들이 모이는 시기입니다. 모임에 참석하세요.'},
+  {name:'지풍승',hanja:'地風升',symbol:'☷☴',meaning:'바람 위에 땅, 올라감',fortune:'크게 형통하니 큰 사람을 만나라. 근심하지 말라.',advice:'승진·발전의 좋은 기운! 자신감을 가지세요.'},
+  {name:'택수곤',hanja:'澤水困',symbol:'☱☵',meaning:'못 아래 물, 곤궁함',fortune:'형통하고 바르면 대인이 길하고 허물이 없다.',advice:'어려운 상황이지만 반드시 빠져나갑니다. 인내하세요.'},
+  {name:'수풍정',hanja:'水風井',symbol:'☵☴',meaning:'바람 위에 물, 우물',fortune:'마을을 바꿔도 우물은 바꾸지 않는다.',advice:'기본에 충실하세요. 변하지 않는 가치를 지키세요.'},
+  {name:'택화혁',hanja:'澤火革',symbol:'☱☲',meaning:'불 위에 못, 변혁',fortune:'이미 이루어지면 믿음이 있다. 크게 형통하고 바르면 이롭다.',advice:'변화의 시기! 과감하게 혁신하세요. 때가 되었습니다.'},
+  {name:'화풍정',hanja:'火風鼎',symbol:'☲☴',meaning:'바람 위에 불, 솥',fortune:'크게 형통하다.',advice:'새로운 것을 만들어내세요. 창조적 활동이 성과를 냅니다.'},
+  {name:'진괘',hanja:'震卦',symbol:'☳☳',meaning:'천둥 위에 천둥, 진동',fortune:'형통하니 천둥이 오면 두려워하다 웃는다.',advice:'놀라운 일이 생기지만 결과는 좋습니다. 당황하지 마세요.'},
+  {name:'간괘',hanja:'艮卦',symbol:'☶☶',meaning:'산 위에 산, 멈춤',fortune:'등을 그치면 몸을 얻지 못하니 허물이 없다.',advice:'멈출 때를 알아야 합니다. 지금은 행동보다 사색이 필요합니다.'},
+  {name:'풍산점',hanja:'風山漸',symbol:'☴☶',meaning:'산 위에 바람, 점진',fortune:'여자가 시집가면 길하다. 바르면 이롭다.',advice:'서두르지 마세요. 한 걸음씩 차근차근 나아가면 됩니다.'},
+  {name:'뇌택귀매',hanja:'雷澤歸妹',symbol:'☳☱',meaning:'못 위에 천둥, 시집감',fortune:'나아가면 흉하니 이로운 바가 없다.',advice:'급한 결정을 피하세요. 특히 관계에서 신중하세요.'},
+  {name:'뇌화풍',hanja:'雷火豊',symbol:'☳☲',meaning:'불 위에 천둥, 풍성함',fortune:'형통하니 왕이 이에 이르러 근심하지 마라.',advice:'풍요와 성공의 시기입니다! 감사하는 마음을 가지세요.'},
+  {name:'화산려',hanja:'火山旅',symbol:'☲☶',meaning:'산 위에 불, 나그네',fortune:'약간 형통하고 나그네가 바르면 길하다.',advice:'여행이나 이동이 있을 수 있습니다. 유연하게 대처하세요.'},
+  {name:'손괘',hanja:'巽卦',symbol:'☴☴',meaning:'바람 위에 바람, 부드러움',fortune:'약간 형통하니 갈 바가 있으면 이롭다.',advice:'부드럽게 접근하세요. 강제보다 설득이 효과적입니다.'},
+  {name:'태괘',hanja:'兌卦',symbol:'☱☱',meaning:'못 위에 못, 기쁨',fortune:'형통하고 바르면 이롭다.',advice:'기쁜 일이 생깁니다! 긍정적인 에너지를 나누세요.'},
+  {name:'풍수환',hanja:'風水渙',symbol:'☴☵',meaning:'물 위에 바람, 흩어짐',fortune:'형통하니 왕이 사당에 이르면 큰물을 건너도 이롭다.',advice:'흩어진 것을 모으세요. 집중력이 필요합니다.'},
+  {name:'수택절',hanja:'水澤節',symbol:'☵☱',meaning:'못 위에 물, 절제',fortune:'형통하나 고통스러운 절제는 바르지 않다.',advice:'절제와 균형이 필요합니다. 과하지도 부족하지도 않게.'},
+  {name:'풍택중부',hanja:'風澤中孚',symbol:'☴☱',meaning:'못 위에 바람, 믿음',fortune:'돼지와 물고기까지 길하니 큰물을 건너면 이롭다.',advice:'진심을 다하면 통합니다. 신뢰가 모든 것의 기초입니다.'},
+  {name:'뇌산소과',hanja:'雷山小過',symbol:'☳☶',meaning:'산 위에 천둥, 약간 지나침',fortune:'형통하고 바르면 이롭다. 작은 일에 해야지 큰 일에는 안 된다.',advice:'큰 일보다 작은 일에 집중하세요. 겸손히 처신하세요.'},
+  {name:'수화기제',hanja:'水火旣濟',symbol:'☵☲',meaning:'불 위에 물, 이미 이루어짐',fortune:'형통하고 약간 바르면 이롭다. 처음은 길하고 끝은 어지럽다.',advice:'일이 마무리되는 시기입니다. 끝까지 방심하지 마세요.'},
+  {name:'화수미제',hanja:'火水未濟',symbol:'☲☵',meaning:'물 위에 불, 아직 이루어지지 않음',fortune:'형통하나 여우가 거의 건넜는데 꼬리를 적시니 이로운 바가 없다.',advice:'아직 때가 아닙니다. 좀 더 준비하세요. 희망을 잃지 마세요.'}
+];
+
+function castIching(question) {
+  // 6효 생성 (동전 점 방식)
+  const lines = [];
+  for (let i = 0; i < 6; i++) {
+    const val = Math.floor(Math.random() * 4) + 6; // 6,7,8,9
+    lines.push(val);
+  }
+
+  // 하괘(하위 3효) + 상괘(상위 3효)로 괘 결정
+  const lower = lines.slice(0, 3).map(l => l % 2); // 0=음, 1=양
+  const upper = lines.slice(3, 6).map(l => l % 2);
+
+  const trigramIdx = (upper[2]*4 + upper[1]*2 + upper[0]) * 8 + (lower[2]*4 + lower[1]*2 + lower[0]);
+  const hexIdx = trigramIdx % 64;
+  const hexagram = HEXAGRAM_DATA[hexIdx];
+
+  // 변효 (6 또는 9인 효)
+  const changingLines = lines.map((l, i) => (l === 6 || l === 9) ? i : -1).filter(i => i >= 0);
+
+  return {
+    hexagram,
+    lines,
+    changingLines,
+    question: question || '',
+    lineSymbols: lines.map(l => l % 2 === 1 ? '⚊' : '⚋'),
+    timestamp: new Date().toLocaleString('ko-KR')
+  };
+}
+
+// ============================================================
+// 띠별 운세 (12간지)
+// ============================================================
+function getZodiacFortune(year) {
+  const currentYear = new Date().getFullYear();
+  const cyStem = ((currentYear - 4) % 10 + 10) % 10;
+  const cyBranch = ((currentYear - 4) % 12 + 12) % 12;
+
+  const fortunes = [];
+  for (let i = 0; i < 12; i++) {
+    const sipsung = getSipsung(i * 2 % 10, cyStem); // 근사적 십성
+    const ship2 = SHIP2_TABLE[i % 10][cyBranch];
+
+    let score = {0:65,1:50,2:80,3:60,4:75,5:80,6:45,7:78,8:62,9:82}[sipsung] || 60;
+    score += {0:10,1:0,2:8,3:12,4:15,5:-2,6:-5,7:-8,8:-3,9:-10,10:3,11:5}[ship2] || 0;
+    score = Math.max(35, Math.min(95, score));
+
+    const ZODIAC_FORTUNE_TEXT = [
+      {money:'저축에 유리한 해', love:'새로운 인연 기대', career:'안정적 발전', health:'수면 관리 필요'},
+      {money:'부동산 관련 운 상승', love:'신뢰가 깊어짐', career:'꾸준한 성장', health:'소화기 주의'},
+      {money:'투자 기회 포착', love:'열정적 만남', career:'승진 기회', health:'간 건강 주의'},
+      {money:'부수입 기대', love:'로맨틱한 시기', career:'창의적 성과', health:'알레르기 주의'},
+      {money:'큰 재물 운', love:'운명적 만남', career:'리더십 발휘', health:'근골격 주의'},
+      {money:'지혜로운 투자', love:'지적 교류', career:'전문성 인정', health:'피부 관리'},
+      {money:'활동적 수입', love:'활발한 사교', career:'이직/변화 기회', health:'심장 주의'},
+      {money:'안정적 수입', love:'가정적 행복', career:'협업이 열쇠', health:'위장 관리'},
+      {money:'사업 확장 유리', love:'매력 발산', career:'네트워킹 중요', health:'호흡기 주의'},
+      {money:'기술로 수입', love:'세련된 만남', career:'디테일이 성공', health:'폐 건강 주의'},
+      {money:'충성에 보상', love:'의리 있는 관계', career:'안정 속 발전', health:'관절 주의'},
+      {money:'예상외 횡재', love:'깊은 인연', career:'새로운 시작', health:'비뇨기 주의'}
+    ];
+
+    fortunes.push({
+      branch: i,
+      animal: JIJI[i].animal,
+      hanja: JIJI[i].hanja,
+      score,
+      ...ZODIAC_FORTUNE_TEXT[i],
+      sipsung,
+      keyword: SIPSUNG_NAMES[sipsung]
+    });
+  }
+  return { year: currentYear, stem: cyStem, branch: cyBranch, fortunes };
+}
+
+// ============================================================
+// 꿈해몽 (Dream Interpretation)
+// ============================================================
+const DREAM_DB = {
+  '뱀': {meaning:'재물과 지혜의 상징. 뱀을 보면 횡재수가 있거나 숨겨진 지혜가 깨어납니다.', luck:'대길', numbers:[3,7,24,38], category:'동물'},
+  '호랑이': {meaning:'권력과 용기의 상징. 큰 기회가 다가오거나 강력한 인물을 만나게 됩니다.', luck:'길', numbers:[1,9,15,42], category:'동물'},
+  '용': {meaning:'최고의 길몽! 승진, 합격, 큰 재물 등 대박의 징조입니다.', luck:'대길', numbers:[5,8,28,45], category:'동물'},
+  '돼지': {meaning:'재물과 풍요의 상징. 돼지꿈은 재물운이 상승하는 징조입니다.', luck:'대길', numbers:[6,12,33,44], category:'동물'},
+  '개': {meaning:'충성과 보호의 상징. 믿을 수 있는 사람이 나타나거나 도움을 받게 됩니다.', luck:'길', numbers:[2,11,26,39], category:'동물'},
+  '고양이': {meaning:'직감과 독립의 상징. 자신만의 길을 가야 할 때입니다.', luck:'보통', numbers:[4,13,27,36], category:'동물'},
+  '물고기': {meaning:'풍요와 행운의 상징. 물고기를 잡으면 재물이 들어옵니다.', luck:'대길', numbers:[7,16,29,43], category:'동물'},
+  '새': {meaning:'자유와 소식의 상징. 좋은 소식이 날아옵니다.', luck:'길', numbers:[3,14,25,41], category:'동물'},
+  '소': {meaning:'근면과 재산의 상징. 꾸준한 노력이 결실을 맺습니다.', luck:'길', numbers:[2,10,21,35], category:'동물'},
+  '말': {meaning:'성공과 전진의 상징. 빠른 발전과 승진이 기대됩니다.', luck:'대길', numbers:[1,8,18,37], category:'동물'},
+  '물': {meaning:'재물과 감정의 상징. 맑은 물은 길, 탁한 물은 주의.', luck:'길', numbers:[1,6,19,40], category:'자연'},
+  '불': {meaning:'열정과 변화의 상징. 새로운 시작이나 열정이 타오릅니다.', luck:'보통', numbers:[2,7,23,34], category:'자연'},
+  '산': {meaning:'목표와 성취의 상징. 산을 오르면 목표 달성, 내려오면 휴식이 필요.', luck:'길', numbers:[5,15,30,42], category:'자연'},
+  '바다': {meaning:'무한한 가능성의 상징. 큰 기회가 펼쳐집니다.', luck:'대길', numbers:[1,9,20,46], category:'자연'},
+  '비': {meaning:'정화와 축복의 상징. 걱정이 씻겨 내려가고 새로운 시작이 옵니다.', luck:'길', numbers:[4,11,22,38], category:'자연'},
+  '눈': {meaning:'순수와 새출발의 상징. 깨끗한 마음으로 다시 시작할 수 있습니다.', luck:'길', numbers:[1,10,25,40], category:'자연'},
+  '꽃': {meaning:'아름다움과 사랑의 상징. 연애운이 상승합니다.', luck:'대길', numbers:[3,12,27,39], category:'자연'},
+  '나무': {meaning:'성장과 발전의 상징. 꾸준한 성장이 기대됩니다.', luck:'길', numbers:[3,8,21,36], category:'자연'},
+  '돈': {meaning:'재물의 직접적 상징. 돈을 줍는 꿈은 뜻밖의 수입, 잃는 꿈은 지출 주의.', luck:'길', numbers:[6,14,28,45], category:'물건'},
+  '금': {meaning:'최고의 재물운! 큰 금전적 행운이 다가옵니다.', luck:'대길', numbers:[4,9,24,43], category:'물건'},
+  '집': {meaning:'안정과 가정의 상징. 가정에 경사가 있거나 부동산 운이 좋습니다.', luck:'길', numbers:[5,16,32,41], category:'물건'},
+  '차': {meaning:'이동과 변화의 상징. 여행이나 이사가 있을 수 있습니다.', luck:'보통', numbers:[2,13,26,37], category:'물건'},
+  '시험': {meaning:'도전과 평가의 상징. 시험에 합격하는 꿈은 실제 좋은 결과를 암시합니다.', luck:'길', numbers:[1,7,17,33], category:'상황'},
+  '결혼': {meaning:'결합과 약속의 상징. 새로운 인연이나 계약이 성사됩니다.', luck:'대길', numbers:[2,8,22,44], category:'상황'},
+  '죽음': {meaning:'재탄생과 변화의 상징! (역꿈) 큰 변화와 새로운 시작을 의미합니다.', luck:'대길', numbers:[9,18,27,45], category:'상황'},
+  '날기': {meaning:'자유와 성취의 상징. 높이 날수록 큰 성공이 기대됩니다.', luck:'대길', numbers:[1,5,15,42], category:'상황'},
+  '떨어지기': {meaning:'불안과 경고의 상징. 현재 상황을 점검하고 조심하세요.', luck:'주의', numbers:[4,10,20,31], category:'상황'},
+  '쫓기기': {meaning:'스트레스와 회피의 상징. 해결해야 할 문제를 직면하세요.', luck:'보통', numbers:[3,11,23,35], category:'상황'},
+  '이빨': {meaning:'자신감과 변화의 상징. 이빨이 빠지면 가족에 변화가 생깁니다.', luck:'보통', numbers:[6,14,29,38], category:'신체'},
+  '머리카락': {meaning:'생각과 에너지의 상징. 머리가 길면 지혜, 빠지면 걱정이 사라짐.', luck:'길', numbers:[2,13,24,36], category:'신체'},
+  '아기': {meaning:'새로운 시작과 순수의 상징. 새 프로젝트나 관계가 시작됩니다.', luck:'대길', numbers:[1,10,20,41], category:'사람'},
+  '부모': {meaning:'보호와 근본의 상징. 부모님의 건강을 챙기거나 근본에 충실하세요.', luck:'길', numbers:[5,15,25,40], category:'사람'},
+  '연예인': {meaning:'인정과 명예의 상징. 사회적으로 인정받을 일이 생깁니다.', luck:'길', numbers:[7,17,33,44], category:'사람'}
+};
+
+function interpretDream(keyword) {
+  if (!keyword) return null;
+  const key = keyword.trim();
+
+  // 정확한 매칭
+  if (DREAM_DB[key]) {
+    return { keyword: key, ...DREAM_DB[key], matched: true };
+  }
+
+  // 부분 매칭
+  const partial = Object.entries(DREAM_DB).find(([k]) => key.includes(k) || k.includes(key));
+  if (partial) {
+    return { keyword: partial[0], ...partial[1], matched: true, originalKeyword: key };
+  }
+
+  // 매칭 안 됨 - 일반적 해석
+  const randomNums = Array.from({length:4}, () => Math.floor(Math.random()*45)+1);
+  return {
+    keyword: key, matched: false,
+    meaning: `"${key}"에 대한 구체적인 해몽 데이터가 없지만, 꿈은 무의식의 메시지입니다. 이 꿈이 반복된다면 현재 마음 상태를 돌아보세요.`,
+    luck: '보통', numbers: randomNums, category: '기타'
+  };
+}
+
+// ============================================================
 // 부적(符籍) 생성 엔진 - 사주 기반 맞춤형 6종
 // ============================================================
 function generateTalisman(canvas, type, dayStem, yongsinAnalysis, pillars) {
@@ -3467,6 +3822,13 @@ function App() {
   const [calendarYear, setCalendarYear] = useState(new Date().getFullYear());
   const [selectedDay, setSelectedDay] = useState(null);
   const [activeTab, setActiveTab] = useState('all');
+  // 이름풀이, 주역점, 꿈해몽 상태
+  const [nameInput, setNameInput] = useState('');
+  const [nameResult, setNameResult] = useState(null);
+  const [ichingQ, setIchingQ] = useState('');
+  const [ichingResult, setIchingResult] = useState(null);
+  const [dreamKey, setDreamKey] = useState('');
+  const [dreamResult, setDreamResult] = useState(null);
 
   const resultRef = useRef(null);
 
@@ -3758,6 +4120,11 @@ function App() {
                   {id:'special', label:'특수분석', icon:'⭐'},
                   {id:'life', label:'인생/관계', icon:'💑'},
                   {id:'talisman', label:'부적', icon:'🧿'},
+                  {id:'taegil', label:'택일', icon:'💍'},
+                  {id:'naming', label:'이름풀이', icon:'🔢'},
+                  {id:'iching', label:'주역점', icon:'🃏'},
+                  {id:'zodiac', label:'띠운세', icon:'🐉'},
+                  {id:'dream', label:'꿈해몽', icon:'🌙'},
                   {id:'summary', label:'종합', icon:'📋'}
                 ].map(tab => (
                   <button key={tab.id}
@@ -4645,6 +5012,188 @@ function App() {
               </div>
             </AccordionSection>
 
+            </>}
+
+            {/* ===== 택일 (擇日) ===== */}
+            {(activeTab==='all' || activeTab==='taegil') && <>
+            <AccordionSection title="택일 (擇日)" subtitle="결혼·이사·개업 등 좋은 날짜 추천" delay={820} defaultOpen={activeTab==='taegil'}>
+              <div className="space-y-4">
+                <div className="flex flex-wrap gap-2 mb-3">
+                  {['wedding','moving','business','interview','travel','hospital','contract','propose'].map(p => {
+                    const labels = {wedding:'💍 결혼',moving:'🏠 이사',business:'🏪 개업',interview:'💼 면접',travel:'✈️ 여행',hospital:'🏥 수술',contract:'📝 계약',propose:'❤️ 고백'};
+                    const auspDates = getAuspiciousDates(result.dayStem, result.pillars, new Date().getFullYear(), new Date().getMonth()+1, p);
+                    return (
+                      <div key={p} className="flex-1 min-w-[140px]">
+                        <div className="text-sm font-bold text-gold mb-2">{labels[p]}</div>
+                        {auspDates.results.length > 0 ? (
+                          <div className="space-y-1">
+                            {auspDates.results.slice(0,3).map((d,i) => (
+                              <div key={i} className="flex items-center gap-2 p-1.5 rounded bg-bg-card2 border border-gray-700 text-xs">
+                                <span className="font-bold text-gray-300">{d.day}일({d.weekday})</span>
+                                <span className={'px-1 rounded font-bold ' + (d.grade==='대길'?'bg-green-500/20 text-green-400':d.grade==='길'?'bg-yellow-500/20 text-yellow-400':'bg-blue-500/20 text-blue-400')}>{d.grade}</span>
+                                <span className="text-gray-500">{d.score}점</span>
+                                {d.hasHap && <span className="text-green-400">合</span>}
+                              </div>
+                            ))}
+                          </div>
+                        ) : <p className="text-xs text-gray-500">이번 달 추천일 없음</p>}
+                      </div>
+                    );
+                  })}
+                </div>
+                <p className="text-xs text-gray-500 text-center">※ 이번 달({new Date().getMonth()+1}월) 기준 · 내 사주에 맞는 날짜를 추천합니다</p>
+              </div>
+            </AccordionSection>
+            </>}
+
+            {/* ===== 이름풀이 (姓名學) ===== */}
+            {(activeTab==='all' || activeTab==='naming') && <>
+            <AccordionSection title="이름풀이 (姓名學)" subtitle="한글 이름의 획수·음양·오행 분석" delay={830} defaultOpen={activeTab==='naming'}>
+              <div className="space-y-4">
+                <div className="flex gap-2">
+                  <input type="text" value={nameInput} onChange={e => setNameInput(e.target.value)}
+                    placeholder="이름을 입력하세요 (예: 홍길동)"
+                    className="flex-1" maxLength={6} />
+                  <button onClick={() => setNameResult(analyzeName(nameInput))}
+                    className="px-4 py-2 rounded-lg bg-gold text-black font-bold text-sm hover:bg-gold-light transition-all">분석</button>
+                </div>
+                {nameResult && (
+                  <div className="animate-fade-in space-y-3">
+                    <div className="text-center">
+                      <div className="text-2xl font-serif font-bold text-gold">{nameResult.name}</div>
+                      <div className={'text-lg font-bold mt-1 ' + (nameResult.totalScore>=70?'text-green-400':nameResult.totalScore>=50?'text-yellow-400':'text-red-400')}>{nameResult.totalScore}점</div>
+                    </div>
+                    <div className="grid grid-cols-4 gap-2 text-center">
+                      {nameResult.chars.map((c,i) => (
+                        <div key={i} className="p-2 rounded-lg border border-gray-700 bg-bg-card2">
+                          <div className="text-xl font-serif font-bold text-gold">{c}</div>
+                          <div className="text-sm text-gray-400">{nameResult.strokes[i]}획</div>
+                          <div className="text-xs" style={{color:getElementColor(nameResult.elements[i])}}>{nameResult.elements[i]}</div>
+                          <div className="text-xs text-gray-500">{nameResult.yinYang[i]}</div>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                      {[nameResult.wonGyeok,nameResult.hyungGyeok,nameResult.yiGyeok,nameResult.jeongGyeok].map((g,i) => (
+                        <div key={i} className="p-2 rounded-lg border border-gray-700 bg-bg-card2 text-center">
+                          <div className="text-xs text-gray-500">{g.desc}</div>
+                          <div className="text-lg font-bold text-gold">{g.value}수</div>
+                          <div className={'text-xs font-bold ' + (g.luck==='대길'?'text-green-400':g.luck==='길'?'text-yellow-400':'text-red-400')}>{g.luck}</div>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="p-3 rounded-lg bg-bg-card2 border border-gray-700 text-center">
+                      <div className="text-sm text-gold">총획: {nameResult.total}획 · 오행 조합: {nameResult.harmony}</div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </AccordionSection>
+            </>}
+
+            {/* ===== 주역점 (周易占) ===== */}
+            {(activeTab==='all' || activeTab==='iching') && <>
+            <AccordionSection title="주역점 (周易占)" subtitle="고민을 입력하고 64괘 점을 뽑으세요" delay={840} defaultOpen={activeTab==='iching'}>
+              <div className="space-y-4">
+                <div className="flex gap-2">
+                  <input type="text" value={ichingQ} onChange={e => setIchingQ(e.target.value)}
+                    placeholder="고민이나 질문을 입력하세요" className="flex-1" />
+                  <button onClick={() => setIchingResult(castIching(ichingQ))}
+                    className="px-4 py-2 rounded-lg bg-gold text-black font-bold text-sm hover:bg-gold-light transition-all">점치기</button>
+                </div>
+                {ichingResult && (
+                  <div className="animate-fade-in space-y-3 text-center">
+                    <div className="text-4xl mb-2">{ichingResult.hexagram.symbol}</div>
+                    <div className="text-2xl font-serif font-bold text-gold">{ichingResult.hexagram.hanja}</div>
+                    <div className="text-lg text-gray-300">{ichingResult.hexagram.name}</div>
+                    <div className="text-sm text-gray-400">{ichingResult.hexagram.meaning}</div>
+                    <div className="p-4 rounded-lg bg-gold/5 border border-gold/20 mt-3">
+                      <div className="text-sm font-bold text-gold mb-2">괘사 (卦辭)</div>
+                      <p className="text-sm text-gray-300 leading-relaxed">{ichingResult.hexagram.fortune}</p>
+                    </div>
+                    <div className="p-4 rounded-lg bg-bg-card2 border border-gray-700">
+                      <div className="text-sm font-bold text-gold mb-2">조언</div>
+                      <p className="text-sm text-gray-300 leading-relaxed">{ichingResult.hexagram.advice}</p>
+                    </div>
+                    <div className="flex justify-center gap-2 mt-2">
+                      {ichingResult.lineSymbols.map((s,i) => (
+                        <span key={i} className="text-2xl text-gold">{s}</span>
+                      ))}
+                    </div>
+                    {ichingQ && <p className="text-xs text-gray-500 mt-2">질문: "{ichingQ}" · {ichingResult.timestamp}</p>}
+                    <button onClick={() => setIchingResult(castIching(ichingQ))}
+                      className="mt-2 text-xs px-4 py-1.5 rounded-lg bg-gray-800 text-gray-400 hover:text-gold">다시 점치기</button>
+                  </div>
+                )}
+              </div>
+            </AccordionSection>
+            </>}
+
+            {/* ===== 띠별 운세 ===== */}
+            {(activeTab==='all' || activeTab==='zodiac') && <>
+            <AccordionSection title={new Date().getFullYear()+"년 띠별 운세 (十二支)"} subtitle="12간지 띠별 올해 운세" delay={850} defaultOpen={activeTab==='zodiac'}>
+              <div className="grid grid-cols-3 md:grid-cols-4 gap-2">
+                {getZodiacFortune(new Date().getFullYear()).fortunes.map((z,i) => (
+                  <div key={i} className="p-3 rounded-lg border border-gray-700 bg-bg-card2 text-center hover:border-gold/30 transition-all">
+                    <div className="text-2xl">{['🐭','🐂','🐯','🐰','🐲','🐍','🐴','🐑','🐵','🐔','🐶','🐷'][i]}</div>
+                    <div className="text-lg font-serif font-bold text-gold mt-1">{z.hanja}</div>
+                    <div className="text-sm text-gray-300">{z.animal}띠</div>
+                    <div className={'text-xl font-bold mt-1 ' + (z.score>=75?'text-green-400':z.score>=55?'text-yellow-400':'text-red-400')}>{z.score}점</div>
+                    <div className="text-xs text-gray-500 mt-1">{z.keyword}</div>
+                    <div className="mt-2 space-y-0.5 text-xs text-left">
+                      <div className="text-gray-400">💰 {z.money}</div>
+                      <div className="text-gray-400">❤️ {z.love}</div>
+                      <div className="text-gray-400">💼 {z.career}</div>
+                      <div className="text-gray-400">🏥 {z.health}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </AccordionSection>
+            </>}
+
+            {/* ===== 꿈해몽 ===== */}
+            {(activeTab==='all' || activeTab==='dream') && <>
+            <AccordionSection title="꿈해몽 (夢解)" subtitle="꿈 키워드를 입력하면 해석해드립니다" delay={860} defaultOpen={activeTab==='dream'}>
+              <div className="space-y-4">
+                <div className="flex gap-2">
+                  <input type="text" value={dreamKey} onChange={e => setDreamKey(e.target.value)}
+                    placeholder="꿈에서 본 것을 입력하세요 (예: 뱀, 용, 돈, 물)"
+                    className="flex-1" />
+                  <button onClick={() => setDreamResult(interpretDream(dreamKey))}
+                    className="px-4 py-2 rounded-lg bg-gold text-black font-bold text-sm hover:bg-gold-light transition-all">해몽</button>
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {['뱀','용','돼지','물고기','돈','물','불','꽃','시험','날기','아기','죽음'].map(k => (
+                    <button key={k} onClick={() => { setDreamKey(k); setDreamResult(interpretDream(k)); }}
+                      className="text-xs px-2.5 py-1 rounded-full bg-gray-800 text-gray-400 hover:text-gold hover:bg-gray-700 transition-all">{k}</button>
+                  ))}
+                </div>
+                {dreamResult && (
+                  <div className="animate-fade-in p-4 rounded-lg border border-gold/20 bg-gold/5">
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="text-lg font-bold text-gold">"{dreamResult.keyword}" 꿈 해몽</div>
+                      <span className={'text-sm px-2 py-0.5 rounded font-bold ' + (dreamResult.luck==='대길'?'bg-green-500/20 text-green-400':dreamResult.luck==='길'?'bg-yellow-500/20 text-yellow-400':dreamResult.luck==='주의'?'bg-red-500/20 text-red-400':'bg-gray-500/20 text-gray-400')}>{dreamResult.luck}</span>
+                    </div>
+                    <p className="text-sm text-gray-300 leading-relaxed mb-3">{dreamResult.meaning}</p>
+                    <div className="flex items-center gap-4">
+                      <div>
+                        <div className="text-xs text-gray-500">행운의 숫자</div>
+                        <div className="flex gap-1.5 mt-1">
+                          {dreamResult.numbers.map((n,i) => (
+                            <span key={i} className="w-8 h-8 rounded-full bg-gold/20 text-gold flex items-center justify-center text-sm font-bold">{n}</span>
+                          ))}
+                        </div>
+                      </div>
+                      <div>
+                        <div className="text-xs text-gray-500">분류</div>
+                        <div className="text-sm text-gray-400 mt-1">{dreamResult.category}</div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </AccordionSection>
             </>}
 
             {/* 버튼들 */}
