@@ -3183,6 +3183,276 @@ function interpretDream(keyword) {
 }
 
 // ============================================================
+// ============================================================
+// SNS 공유용 사주 카드 이미지 생성
+// ============================================================
+function generateSajuCard(canvas, dayStem, pillars, gyeokguk, yongsinAnalysis, ship2) {
+  const ctx = canvas.getContext('2d');
+  const W = 600, H = 600;
+  canvas.width = W; canvas.height = H;
+
+  // 배경
+  const bg = ctx.createLinearGradient(0,0,W,H);
+  bg.addColorStop(0,'#0a0a1a'); bg.addColorStop(0.5,'#1a1a3e'); bg.addColorStop(1,'#0a0a1a');
+  ctx.fillStyle = bg; ctx.fillRect(0,0,W,H);
+
+  // 테두리
+  ctx.strokeStyle = '#D4AF3766'; ctx.lineWidth = 2;
+  ctx.strokeRect(20,20,W-40,H-40);
+
+  // 상단 로고
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#D4AF37'; ctx.font = '14px sans-serif';
+  ctx.fillText('☯ 사주팔자 만세력', W/2, 55);
+
+  // 일간 정보
+  const dayEl = CHEONGAN[dayStem].element;
+  const elColors = {'목':'#4ade80','화':'#f87171','토':'#fbbf24','금':'#e5e7eb','수':'#60a5fa'};
+  ctx.font = 'bold 36px serif';
+  ctx.fillStyle = elColors[dayEl] || '#D4AF37';
+  ctx.fillText(CHEONGAN[dayStem].hanja + ' ' + ILGAN_PERSONALITY[dayStem].title, W/2, 100);
+
+  // 격국
+  if (gyeokguk) {
+    ctx.font = '18px sans-serif'; ctx.fillStyle = '#D4AF37aa';
+    ctx.fillText(gyeokguk.name, W/2, 130);
+  }
+
+  // 4기둥
+  const pillarX = [150, 250, 350, 450];
+  const pillarLabels = ['年','月','日','時'];
+  ctx.font = 'bold 40px serif';
+  pillars.forEach((p, i) => {
+    ctx.fillStyle = elColors[CHEONGAN[p.stem].element] || '#ccc';
+    ctx.fillText(CHEONGAN[p.stem].hanja, pillarX[i], 200);
+    ctx.fillStyle = elColors[JIJI[p.branch].element] || '#ccc';
+    ctx.fillText(JIJI[p.branch].hanja, pillarX[i], 250);
+    ctx.font = '12px sans-serif'; ctx.fillStyle = '#888';
+    ctx.fillText(pillarLabels[i], pillarX[i], 275);
+    ctx.font = 'bold 40px serif';
+  });
+
+  // 구분선
+  ctx.strokeStyle = '#D4AF3733'; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(60,295); ctx.lineTo(W-60,295); ctx.stroke();
+
+  // 용신 정보
+  if (yongsinAnalysis) {
+    ctx.font = 'bold 16px sans-serif'; ctx.fillStyle = '#D4AF37';
+    ctx.fillText('용신: ' + yongsinAnalysis.yongsin.element + '(' + yongsinAnalysis.yongsin.hanja + ')  |  ' +
+      (yongsinAnalysis.isStrong ? '신강(身强)' : '신약(身弱)'), W/2, 325);
+
+    ctx.font = '13px sans-serif'; ctx.fillStyle = '#aaa';
+    ctx.fillText('행운 색상: ' + yongsinAnalysis.yongsin.color + '  |  방향: ' + yongsinAnalysis.yongsin.direction, W/2, 350);
+  }
+
+  // 성격 키워드
+  const keywords = ILGAN_PERSONALITY[dayStem].keywords;
+  if (keywords) {
+    ctx.font = '14px sans-serif'; ctx.fillStyle = '#D4AF37cc';
+    ctx.fillText(keywords.map(k => '#' + k).join('  '), W/2, 385);
+  }
+
+  // 오행 바
+  const elements = {'목':0,'화':0,'토':0,'금':0,'수':0};
+  pillars.forEach(p => { elements[CHEONGAN[p.stem].element]++; elements[JIJI[p.branch].element]++; });
+  const total = Object.values(elements).reduce((a,b)=>a+b,0);
+  let barX = 80;
+  ctx.font = '11px sans-serif';
+  Object.entries(elements).forEach(([el,val]) => {
+    const barW = (val/total) * (W-160);
+    ctx.fillStyle = elColors[el]; ctx.fillRect(barX, 410, barW, 20);
+    if (barW > 25) { ctx.fillStyle = '#000'; ctx.textAlign = 'center'; ctx.fillText(el, barX+barW/2, 425); }
+    barX += barW;
+  });
+  ctx.textAlign = 'center';
+
+  // 십이운성 표시
+  if (ship2) {
+    ctx.font = '13px sans-serif'; ctx.fillStyle = '#aaa';
+    ctx.fillText('십이운성: ' + ['년','월','일','시'].map((l,i) => l+'=' + SHIP2_NAMES[ship2[i]]).join(' · '), W/2, 460);
+  }
+
+  // 하단 URL
+  ctx.font = '12px sans-serif'; ctx.fillStyle = '#666';
+  ctx.fillText('minetia.github.io/saju-fortune', W/2, 500);
+
+  // 날짜
+  const today = new Date();
+  ctx.fillText(today.getFullYear() + '.' + (today.getMonth()+1) + '.' + today.getDate() + ' 분석', W/2, 520);
+
+  // QR 대용 안내
+  ctx.fillStyle = '#D4AF3744'; ctx.font = '11px sans-serif';
+  ctx.fillText('무료 사주 분석 → minetia.github.io/saju-fortune', W/2, 560);
+
+  return canvas;
+}
+
+// 궁합 결과 카드 이미지 생성
+function generateCompatCard(canvas, saju1, saju2, compatibility, gender1, gender2) {
+  const ctx = canvas.getContext('2d');
+  const W = 600, H = 400;
+  canvas.width = W; canvas.height = H;
+
+  const bg = ctx.createLinearGradient(0,0,W,H);
+  bg.addColorStop(0,'#1a0a2e'); bg.addColorStop(1,'#2e0a1a');
+  ctx.fillStyle = bg; ctx.fillRect(0,0,W,H);
+  ctx.strokeStyle = '#D4AF3744'; ctx.lineWidth = 2; ctx.strokeRect(15,15,W-30,H-30);
+
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#D4AF37'; ctx.font = '14px sans-serif';
+  ctx.fillText('☯ 사주 궁합 분석', W/2, 45);
+
+  // 두 사람 정보
+  const el1 = CHEONGAN[saju1.dayStem].element;
+  const el2 = CHEONGAN[saju2.dayStem].element;
+  const elColors = {'목':'#4ade80','화':'#f87171','토':'#fbbf24','금':'#e5e7eb','수':'#60a5fa'};
+
+  // 왼쪽 사람
+  ctx.font = 'bold 32px serif'; ctx.fillStyle = elColors[el1];
+  ctx.fillText(CHEONGAN[saju1.dayStem].hanja, 150, 100);
+  ctx.font = '14px sans-serif'; ctx.fillStyle = '#ccc';
+  ctx.fillText(ILGAN_PERSONALITY[saju1.dayStem].title, 150, 125);
+  ctx.fillText(gender1==='male'?'♂ 남성':'♀ 여성', 150, 145);
+
+  // 하트
+  ctx.font = '40px serif'; ctx.fillStyle = '#ff6b8a';
+  ctx.fillText('❤️', W/2, 110);
+
+  // 오른쪽 사람
+  ctx.font = 'bold 32px serif'; ctx.fillStyle = elColors[el2];
+  ctx.fillText(CHEONGAN[saju2.dayStem].hanja, 450, 100);
+  ctx.font = '14px sans-serif'; ctx.fillStyle = '#ccc';
+  ctx.fillText(ILGAN_PERSONALITY[saju2.dayStem].title, 450, 125);
+  ctx.fillText(gender2==='male'?'♂ 남성':'♀ 여성', 450, 145);
+
+  // 점수
+  if (compatibility) {
+    const scoreColor = compatibility.score >= 80 ? '#ff6b8a' : compatibility.score >= 60 ? '#fbbf24' : '#f87171';
+    ctx.font = 'bold 60px sans-serif'; ctx.fillStyle = scoreColor;
+    ctx.fillText(compatibility.score + '점', W/2, 220);
+    ctx.font = 'bold 24px sans-serif'; ctx.fillStyle = '#D4AF37';
+    ctx.fillText(compatibility.grade, W/2, 255);
+    ctx.font = '13px sans-serif'; ctx.fillStyle = '#aaa';
+    compatibility.analysis.slice(0,2).forEach((a,i) => { ctx.fillText(a.substring(0,40), W/2, 285 + i*20); });
+  }
+
+  ctx.font = '11px sans-serif'; ctx.fillStyle = '#666';
+  ctx.fillText('minetia.github.io/saju-fortune', W/2, 370);
+
+  return canvas;
+}
+
+// ============================================================
+// 원카드 타로 (78장 메이저+마이너 아르카나)
+// ============================================================
+const TAROT_CARDS = [
+  // 메이저 아르카나 (22장)
+  {id:0,name:'바보',eng:'The Fool',emoji:'🃏',meaning:'새로운 시작, 무한한 가능성, 자유로운 영혼',upright:'새로운 모험을 시작할 때입니다. 두려움을 버리고 직감을 따르세요. 예상치 못한 기회가 찾아옵니다.',reversed:'무모한 결정에 주의하세요. 충분히 준비한 후 행동하는 것이 좋습니다.',love:'설레는 새 만남이 다가옵니다',money:'예상치 못한 수입 가능',advice:'용기를 내어 첫 걸음을 내딛으세요'},
+  {id:1,name:'마법사',eng:'The Magician',emoji:'🎩',meaning:'창조력, 의지, 능력의 발현',upright:'당신에게 필요한 모든 것이 이미 갖춰져 있습니다. 집중하면 원하는 것을 이룰 수 있습니다.',reversed:'능력을 잘못된 곳에 사용하고 있진 않은지 돌아보세요.',love:'매력이 빛나는 시기, 적극적으로 어필하세요',money:'재능을 활용한 수입 기회',advice:'자신의 능력을 믿으세요'},
+  {id:2,name:'여사제',eng:'The High Priestess',emoji:'🌙',meaning:'직관, 무의식, 내면의 지혜',upright:'직감을 믿으세요. 표면 아래 숨겨진 진실이 곧 드러납니다. 조용히 기다리는 것이 좋습니다.',reversed:'직감을 무시하고 있진 않나요? 내면의 목소리에 귀 기울이세요.',love:'상대방의 진심을 느끼게 되는 시기',money:'숨겨진 기회를 포착하세요',advice:'명상과 내면 탐구가 도움이 됩니다'},
+  {id:3,name:'여황제',eng:'The Empress',emoji:'👑',meaning:'풍요, 사랑, 모성, 창조',upright:'풍요와 사랑이 넘치는 시기입니다. 창조적 활동이 좋은 결과를 가져옵니다.',reversed:'자신을 돌보는 것을 잊지 마세요. 과잉 보호는 역효과입니다.',love:'사랑이 깊어지고 관계가 풍요로워집니다',money:'풍요의 시기, 투자에 좋은 때',advice:'아름다움과 사랑을 즐기세요'},
+  {id:4,name:'황제',eng:'The Emperor',emoji:'🏛️',meaning:'권위, 안정, 구조, 리더십',upright:'체계적으로 접근하면 성공합니다. 리더십을 발휘하고 질서를 세우세요.',reversed:'너무 경직되어 있진 않나요? 유연함도 필요합니다.',love:'안정적이고 든든한 관계',money:'체계적 관리로 재산 증가',advice:'계획을 세우고 실행하세요'},
+  {id:5,name:'교황',eng:'The Hierophant',emoji:'🙏',meaning:'전통, 가르침, 영적 지도',upright:'멘토나 스승의 조언이 도움됩니다. 전통적인 방법이 효과적입니다.',reversed:'틀에 박힌 사고를 벗어나 보세요.',love:'전통적이고 진지한 관계',money:'안정적이고 보수적인 투자가 유리',advice:'경험자의 조언을 구하세요'},
+  {id:6,name:'연인',eng:'The Lovers',emoji:'💕',meaning:'사랑, 조화, 선택, 결합',upright:'중요한 선택의 순간입니다. 마음이 이끄는 대로 따르면 좋은 결과가 옵니다.',reversed:'갈등 속에서 현명한 판단이 필요합니다.',love:'운명적인 만남 또는 관계의 전환점',money:'파트너십을 통한 이익',advice:'진심을 따르세요'},
+  {id:7,name:'전차',eng:'The Chariot',emoji:'🏆',meaning:'승리, 의지, 전진, 극복',upright:'강한 의지로 장애물을 극복하세요! 승리가 가까이 있습니다.',reversed:'방향을 잃었다면 잠시 멈춰 다시 정비하세요.',love:'적극적으로 다가가면 성공',money:'과감한 추진이 성과로 이어짐',advice:'목표를 향해 돌진하세요'},
+  {id:8,name:'힘',eng:'Strength',emoji:'🦁',meaning:'용기, 인내, 내면의 힘',upright:'부드러운 힘이 강한 힘을 이깁니다. 인내와 용기로 상황을 극복하세요.',reversed:'자신감을 잃지 마세요. 당신은 생각보다 강합니다.',love:'진심 어린 관심이 상대를 감동시킵니다',money:'꾸준한 노력이 결실을 맺는 시기',advice:'인내심을 가지세요'},
+  {id:9,name:'은둔자',eng:'The Hermit',emoji:'🏔️',meaning:'고독, 탐구, 내면의 빛',upright:'혼자만의 시간이 필요합니다. 내면을 들여다보면 답을 찾을 수 있습니다.',reversed:'고립에서 벗어나 사람들과 소통하세요.',love:'자신을 먼저 이해해야 좋은 관계가 가능',money:'조용히 계획을 세우는 시기',advice:'고요 속에서 지혜를 찾으세요'},
+  {id:10,name:'운명의 수레바퀴',eng:'Wheel of Fortune',emoji:'🎡',meaning:'변화, 운명, 순환, 전환점',upright:'운명의 바퀴가 돌아갑니다! 좋은 변화가 찾아오는 전환점입니다.',reversed:'일시적 침체이니 곧 좋아질 것입니다.',love:'운명적 만남의 시기',money:'행운이 찾아오는 시기',advice:'변화를 받아들이세요'},
+  {id:11,name:'정의',eng:'Justice',emoji:'⚖️',meaning:'공정, 균형, 진실, 인과',upright:'공정한 결과가 옵니다. 진실을 말하고 정직하게 행동하세요.',reversed:'불공정한 상황이 있다면 바로잡으세요.',love:'솔직한 대화가 관계를 발전시킵니다',money:'정당한 노력에 정당한 보상',advice:'양심에 따라 행동하세요'},
+  {id:12,name:'매달린 사람',eng:'The Hanged Man',emoji:'🙃',meaning:'희생, 다른 관점, 기다림',upright:'다른 시각으로 상황을 바라보세요. 잠시 멈추면 새로운 깨달음이 옵니다.',reversed:'불필요한 희생은 그만하세요.',love:'상대의 입장에서 생각해보세요',money:'당장의 이익보다 장기적 관점',advice:'관점을 바꿔보세요'},
+  {id:13,name:'죽음',eng:'Death',emoji:'🔄',meaning:'끝과 시작, 변화, 재탄생',upright:'한 시대가 끝나고 새로운 시작이 옵니다. 변화를 두려워하지 마세요.',reversed:'변화에 저항하지 마세요. 흐름에 맡기세요.',love:'관계의 큰 전환점',money:'낡은 방식을 버리고 새로 시작',advice:'집착을 내려놓으세요'},
+  {id:14,name:'절제',eng:'Temperance',emoji:'☯',meaning:'조화, 균형, 절제, 치유',upright:'균형과 조화가 핵심입니다. 극단을 피하고 중용을 지키세요.',reversed:'과도함을 줄이세요. 균형이 깨져 있습니다.',love:'서로 양보하면 관계가 좋아집니다',money:'절약과 투자의 균형',advice:'중용을 지키세요'},
+  {id:15,name:'악마',eng:'The Devil',emoji:'😈',meaning:'유혹, 집착, 속박, 물질',upright:'집착이나 유혹에 빠져 있진 않나요? 스스로 만든 족쇄를 풀 수 있습니다.',reversed:'집착에서 벗어나는 중입니다. 자유가 가까워요.',love:'건강하지 않은 관계를 점검하세요',money:'충동 소비에 주의',advice:'진정한 자유를 찾으세요'},
+  {id:16,name:'탑',eng:'The Tower',emoji:'⚡',meaning:'갑작스런 변화, 파괴, 깨달음',upright:'갑작스러운 변화가 있지만, 이것은 필요한 파괴입니다. 더 나은 것이 세워집니다.',reversed:'변화가 점진적으로 찾아옵니다.',love:'충격적 진실이 드러나지만 결국 도움이 됨',money:'예상치 못한 지출, 하지만 새로운 기회',advice:'무너진 곳에 더 튼튼한 것을 세우세요'},
+  {id:17,name:'별',eng:'The Star',emoji:'⭐',meaning:'희망, 영감, 치유, 평화',upright:'희망의 별이 빛납니다! 어둠 후에 밝은 미래가 기다리고 있습니다.',reversed:'희망을 잃지 마세요. 곧 좋아집니다.',love:'순수하고 아름다운 사랑이 시작됩니다',money:'서서히 좋아지는 재정 상황',advice:'꿈을 포기하지 마세요'},
+  {id:18,name:'달',eng:'The Moon',emoji:'🌙',meaning:'불안, 환상, 무의식, 직감',upright:'불확실한 상황이지만 직감을 믿으세요. 숨겨진 것들이 드러납니다.',reversed:'혼란이 걷히고 상황이 명확해집니다.',love:'상대의 진심을 확인할 필요가 있습니다',money:'불확실한 투자는 피하세요',advice:'감정에 휘둘리지 마세요'},
+  {id:19,name:'태양',eng:'The Sun',emoji:'☀️',meaning:'성공, 기쁨, 활력, 긍정',upright:'최고의 카드! 모든 것이 밝고 긍정적입니다. 성공과 기쁨이 함께합니다.',reversed:'약간의 지연이 있지만 결과는 좋습니다.',love:'밝고 행복한 사랑, 좋은 소식',money:'성공적인 재정 상황',advice:'자신감을 가지고 빛나세요!'},
+  {id:20,name:'심판',eng:'Judgement',emoji:'📯',meaning:'갱생, 깨달음, 소명, 부활',upright:'과거를 돌아보고 새로운 출발을 할 때입니다. 진정한 소명을 찾으세요.',reversed:'과거에 얽매이지 마세요. 용서하고 앞으로 나아가세요.',love:'관계의 재평가와 새 시작',money:'과거 투자의 결실을 거둠',advice:'자신의 소명에 응답하세요'},
+  {id:21,name:'세계',eng:'The World',emoji:'🌍',meaning:'완성, 성취, 통합, 여행',upright:'하나의 큰 순환이 완성됩니다! 목표를 달성하고 새 단계로 나아갑니다.',reversed:'거의 다 왔습니다. 마지막 마무리에 집중하세요.',love:'완전한 사랑, 결혼 가능성',money:'목표 달성, 큰 성과',advice:'축하합니다! 다음 여정을 준비하세요'}
+];
+
+function drawTarotCard() {
+  const card = TAROT_CARDS[Math.floor(Math.random() * TAROT_CARDS.length)];
+  const isReversed = Math.random() < 0.3; // 30% 확률로 역방향
+  return { ...card, isReversed, timestamp: new Date().toLocaleString('ko-KR') };
+}
+
+// ============================================================
+// 꿈해몽 DB 확대 (100개+)
+// ============================================================
+const DREAM_DB_EXTRA = {
+  '거미':{meaning:'행운과 재물의 상징. 거미줄은 인맥의 확장을 의미합니다.',luck:'길',numbers:[2,14,28,41],category:'동물'},
+  '개미':{meaning:'근면과 협동의 상징. 꾸준한 노력이 큰 성과를 만듭니다.',luck:'길',numbers:[3,11,25,37],category:'동물'},
+  '나비':{meaning:'변화와 아름다움의 상징. 인생의 전환점이 다가옵니다.',luck:'대길',numbers:[5,17,29,44],category:'동물'},
+  '토끼':{meaning:'다산과 행운의 상징. 가정에 기쁜 일이 생깁니다.',luck:'길',numbers:[4,12,26,38],category:'동물'},
+  '코끼리':{meaning:'지혜와 부의 상징. 큰 행운이 다가오고 있습니다.',luck:'대길',numbers:[8,18,32,45],category:'동물'},
+  '사자':{meaning:'용기와 권력의 상징. 자신감을 가지면 목표를 이룹니다.',luck:'길',numbers:[1,9,19,42],category:'동물'},
+  '고래':{meaning:'광대한 기회의 상징. 큰 프로젝트나 기회가 옵니다.',luck:'대길',numbers:[6,16,30,43],category:'동물'},
+  '독수리':{meaning:'높은 시야와 자유의 상징. 큰 성취가 기다립니다.',luck:'대길',numbers:[1,7,21,40],category:'동물'},
+  '쥐':{meaning:'재물과 기민함의 상징. 작은 기회도 놓치지 마세요.',luck:'길',numbers:[2,8,22,36],category:'동물'},
+  '거북이':{meaning:'장수와 안정의 상징. 느리지만 확실한 성공입니다.',luck:'길',numbers:[5,10,20,35],category:'동물'},
+  '무지개':{meaning:'희망과 축복의 상징! 어려움 후에 좋은 일이 찾아옵니다.',luck:'대길',numbers:[7,14,28,42],category:'자연'},
+  '태풍':{meaning:'큰 변화의 상징. 격동적이지만 이후 맑아집니다.',luck:'보통',numbers:[3,13,27,39],category:'자연'},
+  '지진':{meaning:'기반의 변화. 큰 환경 변화가 예상됩니다.',luck:'주의',numbers:[4,10,24,36],category:'자연'},
+  '별':{meaning:'희망과 소원의 상징. 소원이 이루어질 징조입니다.',luck:'대길',numbers:[7,17,27,44],category:'자연'},
+  '달':{meaning:'여성성과 직관의 상징. 감수성이 높아지는 시기입니다.',luck:'길',numbers:[2,12,22,38],category:'자연'},
+  '태양':{meaning:'성공과 활력의 상징. 밝은 미래가 펼쳐집니다.',luck:'대길',numbers:[1,9,19,45],category:'자연'},
+  '하늘':{meaning:'무한한 가능성의 상징. 꿈을 크게 가지세요.',luck:'길',numbers:[5,15,25,40],category:'자연'},
+  '구름':{meaning:'일시적 혼란. 곧 걷히니 걱정하지 마세요.',luck:'보통',numbers:[3,11,21,33],category:'자연'},
+  '보석':{meaning:'숨겨진 가치의 발견. 소중한 것을 찾게 됩니다.',luck:'대길',numbers:[4,14,28,43],category:'물건'},
+  '열쇠':{meaning:'해결책을 찾는 상징. 막혀있던 일이 풀립니다.',luck:'대길',numbers:[1,7,17,39],category:'물건'},
+  '거울':{meaning:'자기 성찰의 상징. 자신을 돌아볼 시간입니다.',luck:'보통',numbers:[2,12,22,34],category:'물건'},
+  '칼':{meaning:'결단과 분리의 상징. 과감한 결정이 필요합니다.',luck:'보통',numbers:[4,14,24,37],category:'물건'},
+  '책':{meaning:'지식과 학업의 상징. 배움의 기회가 옵니다.',luck:'길',numbers:[3,13,23,41],category:'물건'},
+  '신발':{meaning:'새로운 여정의 시작. 이동이나 변화가 있습니다.',luck:'길',numbers:[2,8,18,35],category:'물건'},
+  '옷':{meaning:'외모와 사회적 위치의 변화. 새로운 역할이 생깁니다.',luck:'길',numbers:[5,15,25,38],category:'물건'},
+  '반지':{meaning:'약속과 사랑의 상징. 결혼이나 중요한 계약이 있을 수 있습니다.',luck:'대길',numbers:[6,16,26,44],category:'물건'},
+  '피':{meaning:'생명력과 에너지의 상징. 열정이 솟구칩니다.',luck:'보통',numbers:[1,9,19,31],category:'신체'},
+  '눈(눈물)':{meaning:'정화와 감정 해소의 상징. 마음의 짐을 내려놓게 됩니다.',luck:'길',numbers:[4,10,20,36],category:'신체'},
+  '손':{meaning:'행동과 창조의 상징. 직접 나서야 할 때입니다.',luck:'길',numbers:[3,8,18,33],category:'신체'},
+  '도망':{meaning:'현실 회피의 상징. 문제를 직면하면 해결됩니다.',luck:'보통',numbers:[2,12,22,35],category:'상황'},
+  '전쟁':{meaning:'내적 갈등의 상징. 마음속 갈등을 해결하세요.',luck:'주의',numbers:[1,11,21,37],category:'상황'},
+  '축제':{meaning:'기쁨과 축하의 상징. 경사가 생깁니다.',luck:'대길',numbers:[7,17,27,45],category:'상황'},
+  '이사':{meaning:'환경 변화의 상징. 새로운 환경이 좋은 기회를 줍니다.',luck:'길',numbers:[3,13,23,40],category:'상황'},
+  '졸업':{meaning:'성취와 새 시작의 상징. 한 단계 올라섭니다.',luck:'대길',numbers:[5,15,25,42],category:'상황'},
+  '사고':{meaning:'예상치 못한 변화. 안전에 주의하되 두려워하지 마세요.',luck:'주의',numbers:[4,10,20,31],category:'상황'},
+  '선물':{meaning:'예상치 못한 행운. 누군가로부터 도움이 옵니다.',luck:'대길',numbers:[6,16,26,43],category:'물건'},
+  '전화':{meaning:'소식과 연락의 상징. 중요한 연락이 올 수 있습니다.',luck:'길',numbers:[2,8,18,34],category:'물건'},
+  '비행기':{meaning:'해외 인연이나 큰 이동의 상징. 시야가 넓어집니다.',luck:'길',numbers:[1,11,21,39],category:'물건'},
+  '학교':{meaning:'배움과 성장의 상징. 새로운 것을 배울 기회입니다.',luck:'길',numbers:[3,9,19,36],category:'상황'},
+  '병원':{meaning:'건강 점검의 신호. 예방이 최선입니다.',luck:'보통',numbers:[4,14,24,32],category:'상황'},
+  '할머니':{meaning:'지혜와 전통의 상징. 어른의 조언이 도움이 됩니다.',luck:'길',numbers:[5,15,25,41],category:'사람'},
+  '아이':{meaning:'순수함과 새 시작의 상징. 새 프로젝트가 시작됩니다.',luck:'대길',numbers:[1,10,20,43],category:'사람'},
+  '친구':{meaning:'인간관계의 상징. 주변 사람이 도움을 줍니다.',luck:'길',numbers:[3,13,23,38],category:'사람'},
+  '낯선사람':{meaning:'새로운 인연이나 기회의 상징. 열린 마음을 가지세요.',luck:'보통',numbers:[2,8,18,35],category:'사람'},
+  '왕':{meaning:'권력과 성공의 상징. 리더십을 발휘할 때입니다.',luck:'대길',numbers:[1,9,19,44],category:'사람'},
+  '수영':{meaning:'감정과의 조화. 감정을 잘 다루면 성공합니다.',luck:'길',numbers:[6,16,26,40],category:'상황'},
+  '노래':{meaning:'자기 표현과 기쁨의 상징. 창작 활동에 유리합니다.',luck:'길',numbers:[7,17,27,42],category:'상황'},
+  '돌':{meaning:'단단함과 인내의 상징. 흔들리지 않는 의지가 필요합니다.',luck:'보통',numbers:[4,10,20,34],category:'자연'},
+  '강':{meaning:'인생의 흐름과 변화. 자연스럽게 흘러가세요.',luck:'길',numbers:[1,6,16,38],category:'자연'},
+  '섬':{meaning:'고독과 독립의 상징. 혼자만의 시간이 필요합니다.',luck:'보통',numbers:[3,9,19,33],category:'자연'},
+  '동굴':{meaning:'무의식과 내면 탐구. 숨겨진 능력을 발견합니다.',luck:'길',numbers:[5,11,21,37],category:'자연'},
+  '사다리':{meaning:'상승과 성장의 상징. 한 단계 올라서는 기회입니다.',luck:'대길',numbers:[1,8,28,41],category:'물건'},
+  '우산':{meaning:'보호와 대비의 상징. 미리 준비하면 어려움을 피합니다.',luck:'길',numbers:[4,12,22,36],category:'물건'},
+  '시계':{meaning:'시간과 기한의 상징. 적시에 행동해야 합니다.',luck:'보통',numbers:[2,10,20,35],category:'물건'},
+  '문':{meaning:'새로운 기회의 입구. 문을 열면 새 세계가 펼쳐집니다.',luck:'대길',numbers:[1,7,17,43],category:'물건'},
+  '다리':{meaning:'연결과 이행의 상징. 다음 단계로 넘어가는 중입니다.',luck:'길',numbers:[3,13,23,39],category:'물건'},
+  '감옥':{meaning:'속박과 한계의 상징. 스스로의 한계를 깨야 합니다.',luck:'주의',numbers:[4,14,24,30],category:'상황'},
+  '결혼식':{meaning:'결합과 새 출발. 좋은 인연이나 계약이 성사됩니다.',luck:'대길',numbers:[2,8,22,45],category:'상황'},
+  '장례식':{meaning:'끝과 새 시작 (역꿈). 큰 변화 후 새로운 시작.',luck:'길',numbers:[9,18,27,44],category:'상황'},
+  '로또':{meaning:'행운과 기대의 상징. 작은 행운이 찾아올 수 있습니다.',luck:'길',numbers:[7,14,21,28,35,42],category:'물건'},
+  '음식':{meaning:'풍요와 만족의 상징. 먹을 복이 있습니다.',luck:'길',numbers:[2,12,22,36],category:'물건'},
+  '술':{meaning:'축하나 해방의 상징. 경사가 생기거나 스트레스가 풀립니다.',luck:'보통',numbers:[3,9,19,33],category:'물건'},
+  '차사고':{meaning:'주의 신호. 안전 운전하고 건강을 챙기세요.',luck:'주의',numbers:[4,10,20,31],category:'상황'},
+  '임신':{meaning:'새로운 창조와 시작. 새 프로젝트나 아이디어가 탄생합니다.',luck:'대길',numbers:[1,10,20,41],category:'상황'},
+  '이별':{meaning:'변화와 성장. 아픔 뒤에 더 좋은 인연이 옵니다.',luck:'보통',numbers:[3,13,23,35],category:'상황'},
+  '승진':{meaning:'사회적 인정의 상징. 실제로 좋은 소식이 올 수 있습니다.',luck:'대길',numbers:[1,7,17,44],category:'상황'}
+};
+
+// 기존 DREAM_DB에 확장 DB 병합
+Object.assign(DREAM_DB, DREAM_DB_EXTRA);
+
 // 부적(符籍) 생성 엔진 - 사주 기반 맞춤형 6종
 // ============================================================
 function generateTalisman(canvas, type, dayStem, yongsinAnalysis, pillars) {
@@ -3964,6 +4234,7 @@ function App() {
   const [ichingResult, setIchingResult] = useState(null);
   const [dreamKey, setDreamKey] = useState('');
   const [dreamResult, setDreamResult] = useState(null);
+  const [tarotResult, setTarotResult] = useState(null);
 
   const resultRef = useRef(null);
 
@@ -4259,6 +4530,7 @@ function App() {
                   {id:'iching', label:'주역', icon:'🃏'},
                   {id:'zodiac', label:'띠운세', icon:'🐉'},
                   {id:'dream', label:'꿈해몽', icon:'🌙'},
+                  {id:'tarot', label:'타로', icon:'🃏'},
                   {id:'summary', label:'종합', icon:'📋'}
                 ].map(tab => (
                   <button key={tab.id}
@@ -5433,6 +5705,63 @@ function App() {
               </div>
             </AccordionSection>
             </>}
+
+            {/* ===== 타로 ===== */}
+            {(activeTab==='all' || activeTab==='tarot') && <>
+            <AccordionSection title="원카드 타로 (Tarot)" subtitle="카드를 뽑아 지금 당신에게 필요한 메시지를 받으세요" delay={870} defaultOpen={activeTab==='tarot'}>
+              <div className="space-y-4 text-center">
+                <button onClick={() => setTarotResult(drawTarotCard())}
+                  className="px-8 py-4 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 text-white font-bold text-lg hover:from-purple-500 hover:to-pink-500 transition-all shadow-lg shadow-purple-500/30 active:scale-95">
+                  🃏 카드 뽑기
+                </button>
+                {tarotResult && (
+                  <div className="animate-fade-in space-y-4">
+                    <div className={'text-6xl mt-4 ' + (tarotResult.isReversed ? 'transform rotate-180' : '')}>{tarotResult.emoji}</div>
+                    <div className="text-2xl font-serif font-bold text-gold">{tarotResult.name}</div>
+                    <div className="text-sm text-gray-400">{tarotResult.eng} {tarotResult.isReversed && <span className="text-red-400">(역방향)</span>}</div>
+                    <div className="text-sm text-purple-300">{tarotResult.meaning}</div>
+                    <div className="p-4 rounded-lg bg-purple-500/10 border border-purple-500/20 text-left">
+                      <div className="text-sm font-bold text-purple-300 mb-2">{tarotResult.isReversed ? '역방향 해석' : '정방향 해석'}</div>
+                      <p className="text-sm text-gray-300 leading-relaxed">{tarotResult.isReversed ? tarotResult.reversed : tarotResult.upright}</p>
+                    </div>
+                    <div className="grid grid-cols-3 gap-2">
+                      <div className="p-2 rounded-lg bg-bg-card2 border border-gray-700">
+                        <div className="text-xs text-gray-500">연애운</div>
+                        <div className="text-xs text-pink-300 mt-1">{tarotResult.love}</div>
+                      </div>
+                      <div className="p-2 rounded-lg bg-bg-card2 border border-gray-700">
+                        <div className="text-xs text-gray-500">재물운</div>
+                        <div className="text-xs text-yellow-300 mt-1">{tarotResult.money}</div>
+                      </div>
+                      <div className="p-2 rounded-lg bg-bg-card2 border border-gray-700">
+                        <div className="text-xs text-gray-500">조언</div>
+                        <div className="text-xs text-gold mt-1">{tarotResult.advice}</div>
+                      </div>
+                    </div>
+                    <button onClick={() => setTarotResult(drawTarotCard())}
+                      className="text-sm px-4 py-2 rounded-lg bg-gray-800 text-gray-400 hover:text-purple-300 transition-all">다시 뽑기</button>
+                    <p className="text-xs text-gray-600">{tarotResult.timestamp}</p>
+                  </div>
+                )}
+              </div>
+            </AccordionSection>
+            </>}
+
+            {/* SNS 공유 카드 생성 */}
+            <div className="mt-6 mb-2 text-center">
+              <button onClick={() => {
+                const c = document.createElement('canvas');
+                generateSajuCard(c, result.dayStem, result.pillars, gyeokguk, result.yongsinAnalysis, result.ship2);
+                const link = document.createElement('a');
+                link.download = '내사주카드_' + CHEONGAN[result.dayStem].name + JIJI[result.pillars[2].branch].name + '.png';
+                link.href = c.toDataURL('image/png');
+                link.click();
+              }}
+                className="px-6 py-3 rounded-xl bg-gradient-to-r from-gold to-yellow-500 text-black font-bold text-sm hover:from-yellow-400 hover:to-gold transition-all shadow-lg shadow-gold/30 active:scale-95">
+                📸 내 사주 카드 이미지 저장 (SNS 공유용)
+              </button>
+              <p className="text-xs text-gray-500 mt-2">인스타그램·카카오톡에 공유할 수 있는 예쁜 사주 카드를 만들어 줍니다</p>
+            </div>
 
             {/* 버튼들 */}
             <div className="flex flex-wrap gap-3 justify-center mt-8 mb-8">
