@@ -3398,7 +3398,7 @@ const TAROT_CARDS = [
 
 function drawTarotCard() {
   const card = TAROT_CARDS[Math.floor(Math.random() * TAROT_CARDS.length)];
-  const isReversed = Math.random() < 0.3;
+  const isReversed = false;
   return { ...card, isReversed, timestamp: new Date().toLocaleString('ko-KR') };
 }
 
@@ -5937,7 +5937,7 @@ function App() {
                     <button onClick={() => {
                       const shuffled = [...TAROT_CARDS].sort(() => Math.random() - 0.5);
                       const spread = shuffled.slice(0, 7).map(card => ({
-                        ...card, isReversed: Math.random() < 0.3
+                        ...card, isReversed: false
                       }));
                       setTarotSpread(spread);
                       setTarotFlipped(-1);
