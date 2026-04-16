@@ -57,7 +57,9 @@ body {
   color: var(--text);
   min-height: 100vh;
   overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
 }
+*, *::before, *::after { max-width: 100%; }
 .font-serif { font-family: 'Noto Serif KR', serif; }
 .bg-gradient-gold {
   background: linear-gradient(135deg, var(--gold) 0%, #b8860b 50%, var(--gold-light) 100%);
@@ -75,16 +77,25 @@ body {
 .pillar-box {
   background: linear-gradient(180deg, rgba(212,175,55,0.1) 0%, rgba(20,20,32,0.95) 100%);
   border: 1px solid rgba(212,175,55,0.3);
-  border-radius: 12px;
-  padding: 16px 12px;
-  min-width: 80px;
+  border-radius: 10px;
+  padding: 10px 4px;
+  min-width: 0;
   text-align: center;
+  overflow: hidden;
 }
+@media (min-width: 640px) {
+  .pillar-box { padding: 16px 12px; border-radius: 12px; }
+}
+.accordion-content { max-height:0; overflow:hidden; transition:max-height 0.4s ease-out,opacity 0.3s; opacity:0; }
+.accordion-content.open { max-height:12000px; opacity:1; transition:max-height 0.6s ease-in,opacity 0.3s; overflow-x:hidden; }
 .hanja-large {
   font-family: 'Noto Serif KR', serif;
-  font-size: 2rem;
+  font-size: 1.5rem;
   font-weight: 900;
   line-height: 1.2;
+}
+@media (min-width: 640px) {
+  .hanja-large { font-size: 2rem; }
 }
 .ad-slot {
   background: rgba(212,175,55,0.05);
@@ -150,8 +161,6 @@ body.light-mode .border-gray-700, body.light-mode .border-gray-800 { border-colo
 body.light-mode .bg-gray-800 { background:#e8e4dc; }
 body.light-mode header { background:rgba(245,240,232,0.95)!important; }
 body.light-mode .bottom-ad { background:#fff; }
-.accordion-content { max-height:0; overflow:hidden; transition:max-height 0.4s ease-out,opacity 0.3s; opacity:0; }
-.accordion-content.open { max-height:8000px; opacity:1; transition:max-height 0.6s ease-in,opacity 0.3s; }
 .accordion-toggle { cursor:pointer; user-select:none; }
 .accordion-arrow { transition:transform 0.3s; display:inline-block; }
 .accordion-arrow.open { transform:rotate(180deg); }
@@ -4265,11 +4274,11 @@ function App() {
 
             {/* 사주 원국 */}
             <AccordionSection title="사주 원국 (四柱原局)" subtitle="년주·월주·일주·시주" delay={0}>
-              <div className="grid grid-cols-4 gap-2 md:gap-4">
-                <PillarDisplay stem={result.pillars[3].stem} branch={result.pillars[3].branch} label="시주(時柱)" sipsung={result.sipsung[3].stem} ship2Idx={result.ship2[3]} />
-                <PillarDisplay stem={result.pillars[2].stem} branch={result.pillars[2].branch} label="일주(日柱)" sipsung={0} ship2Idx={result.ship2[2]} />
-                <PillarDisplay stem={result.pillars[1].stem} branch={result.pillars[1].branch} label="월주(月柱)" sipsung={result.sipsung[1].stem} ship2Idx={result.ship2[1]} />
-                <PillarDisplay stem={result.pillars[0].stem} branch={result.pillars[0].branch} label="년주(年柱)" sipsung={result.sipsung[0].stem} ship2Idx={result.ship2[0]} />
+              <div className="grid grid-cols-4 gap-1 md:gap-4">
+                <PillarDisplay stem={result.pillars[3].stem} branch={result.pillars[3].branch} label="시주" sipsung={result.sipsung[3].stem} ship2Idx={result.ship2[3]} />
+                <PillarDisplay stem={result.pillars[2].stem} branch={result.pillars[2].branch} label="일주" sipsung={0} ship2Idx={result.ship2[2]} />
+                <PillarDisplay stem={result.pillars[1].stem} branch={result.pillars[1].branch} label="월주" sipsung={result.sipsung[1].stem} ship2Idx={result.ship2[1]} />
+                <PillarDisplay stem={result.pillars[0].stem} branch={result.pillars[0].branch} label="년주" sipsung={result.sipsung[0].stem} ship2Idx={result.ship2[0]} />
               </div>
               {result.solarTimeInfo && (
                 <div className="mt-3 p-2 rounded-lg bg-blue-500/10 border border-blue-500/20 text-center">
@@ -4465,20 +4474,20 @@ function App() {
                 <div className="space-y-4">
                   <div className="text-center mb-4">
                     <div className="text-sm text-gray-400">{result.yongsinAnalysis.isStrong ? '신강(身强) 사주' : '신약(身弱) 사주'}</div>
-                    <div className="mt-2 flex justify-center gap-4">
-                      <div className="p-4 rounded-xl border-2 border-gold bg-gold/10 text-center min-w-[120px]">
+                    <div className="mt-2 flex justify-center gap-2 md:gap-4 flex-wrap">
+                      <div className="p-3 md:p-4 rounded-xl border-2 border-gold bg-gold/10 text-center flex-1 min-w-[80px] max-w-[120px]">
                         <div className="text-xs text-gold/70">용신(用神)</div>
-                        <div className="text-3xl font-serif font-bold mt-1" style={{color: getElementColor(result.yongsinAnalysis.yongsin.element)}}>{result.yongsinAnalysis.yongsin.hanja}</div>
-                        <div className="text-sm mt-1" style={{color: getElementColor(result.yongsinAnalysis.yongsin.element)}}>{result.yongsinAnalysis.yongsin.element}</div>
+                        <div className="text-2xl md:text-3xl font-serif font-bold mt-1" style={{color: getElementColor(result.yongsinAnalysis.yongsin.element)}}>{result.yongsinAnalysis.yongsin.hanja}</div>
+                        <div className="text-xs md:text-sm mt-1" style={{color: getElementColor(result.yongsinAnalysis.yongsin.element)}}>{result.yongsinAnalysis.yongsin.element}</div>
                       </div>
-                      <div className="p-4 rounded-xl border border-green-500/30 bg-green-500/5 text-center min-w-[100px]">
+                      <div className="p-3 md:p-4 rounded-xl border border-green-500/30 bg-green-500/5 text-center flex-1 min-w-[80px] max-w-[110px]">
                         <div className="text-xs text-green-400/70">희신(喜神)</div>
-                        <div className="text-2xl font-serif font-bold mt-1" style={{color: getElementColor(result.yongsinAnalysis.huisin.element)}}>{result.yongsinAnalysis.huisin.hanja}</div>
+                        <div className="text-xl md:text-2xl font-serif font-bold mt-1" style={{color: getElementColor(result.yongsinAnalysis.huisin.element)}}>{result.yongsinAnalysis.huisin.hanja}</div>
                         <div className="text-xs mt-1" style={{color: getElementColor(result.yongsinAnalysis.huisin.element)}}>{result.yongsinAnalysis.huisin.element}</div>
                       </div>
-                      <div className="p-4 rounded-xl border border-red-500/30 bg-red-500/5 text-center min-w-[100px]">
+                      <div className="p-3 md:p-4 rounded-xl border border-red-500/30 bg-red-500/5 text-center flex-1 min-w-[80px] max-w-[110px]">
                         <div className="text-xs text-red-400/70">기신(忌神)</div>
-                        <div className="text-2xl font-serif font-bold mt-1" style={{color: getElementColor(result.yongsinAnalysis.gisin.element)}}>{result.yongsinAnalysis.gisin.hanja}</div>
+                        <div className="text-xl md:text-2xl font-serif font-bold mt-1" style={{color: getElementColor(result.yongsinAnalysis.gisin.element)}}>{result.yongsinAnalysis.gisin.hanja}</div>
                         <div className="text-xs mt-1" style={{color: getElementColor(result.yongsinAnalysis.gisin.element)}}>{result.yongsinAnalysis.gisin.element}</div>
                       </div>
                     </div>
@@ -4560,7 +4569,7 @@ function App() {
             {/* 오행 분석 */}
             <AccordionSection title="오행 분석 (五行分析)" subtitle="목·화·토·금·수 기운의 분포" delay={250}>
               <div className="grid md:grid-cols-2 gap-6">
-                <div className="flex justify-center"><div className="w-64 h-64"><OhengChart elements={result.detailedElements} /></div></div>
+                <div className="flex justify-center"><div className="w-48 h-48 md:w-64 md:h-64"><OhengChart elements={result.detailedElements} /></div></div>
                 <div>
                   <OhengBarChart elements={result.detailedElements} />
                   <div className="mt-4 space-y-2">
