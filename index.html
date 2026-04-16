@@ -3752,6 +3752,7 @@ function App() {
                   {id:'fortune', label:'운세흐름', icon:'📅'},
                   {id:'special', label:'특수분석', icon:'⭐'},
                   {id:'life', label:'인생/관계', icon:'💑'},
+                  {id:'talisman', label:'부적', icon:'🧿'},
                   {id:'summary', label:'종합', icon:'📋'}
                 ].map(tab => (
                   <button key={tab.id}
@@ -4572,8 +4573,13 @@ function App() {
               </AccordionSection>
             )}
 
+            </>}
+
+            {/* ===== 그룹 7: 부적 ===== */}
+            {(activeTab==='all' || activeTab==='talisman') && <>
+
             {/* ★ 맞춤형 부적 (符籍) */}
-            <AccordionSection title="맞춤형 부적 (符籍)" subtitle="사주 기반 6종 부적 · 이미지 저장 가능" delay={750} defaultOpen={false}>
+            <AccordionSection title="맞춤형 부적 (符籍)" subtitle="사주 기반 6종 부적 · 클릭하면 이미지 저장" delay={750} defaultOpen={activeTab==='talisman'}>
               <div className="space-y-4">
                 <p className="text-sm text-gray-400">내 사주의 용신과 오행을 기반으로 제작된 맞춤형 부적입니다. 부적을 클릭하면 큰 화면으로 보고 저장할 수 있습니다.</p>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
