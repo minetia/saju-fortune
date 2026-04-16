@@ -3262,6 +3262,7 @@ function App() {
   const [calendarMonth, setCalendarMonth] = useState(new Date().getMonth() + 1);
   const [calendarYear, setCalendarYear] = useState(new Date().getFullYear());
   const [selectedDay, setSelectedDay] = useState(null);
+  const [activeTab, setActiveTab] = useState('all');
 
   const resultRef = useRef(null);
 
@@ -3531,11 +3532,38 @@ function App() {
         {/* === 결과 화면 === */}
         {result && mode === 'result' && (
           <div ref={resultRef}>
-            <div className="text-center mb-6 animate-fade-in">
+            <div className="text-center mb-4 animate-fade-in">
               <p className="text-gray-400 text-sm">{result.solarDate.year}년 {result.solarDate.month}월 {result.solarDate.day}일 {gender==='male'?'남성':'여성'}</p>
               <p className="text-gold font-serif text-lg mt-1">{ILGAN_PERSONALITY[result.dayStem].title}</p>
               {gyeokguk && <p className="text-sm text-gold/60 mt-1">{gyeokguk.name}</p>}
             </div>
+
+            {/* ★ 6탭 네비게이션 */}
+            <div className="mb-6 sticky top-14 z-30 bg-bg-dark/95 backdrop-blur-md py-2 -mx-4 px-4 border-b border-gray-800/50">
+              <div className="flex gap-1 overflow-x-auto pb-1 scrollbar-hide">
+                {[
+                  {id:'all', label:'전체', icon:'☰'},
+                  {id:'basic', label:'기본사주', icon:'🏛'},
+                  {id:'deep', label:'심화분석', icon:'🔬'},
+                  {id:'fortune', label:'운세흐름', icon:'📅'},
+                  {id:'special', label:'특수분석', icon:'⭐'},
+                  {id:'life', label:'인생/관계', icon:'💑'},
+                  {id:'summary', label:'종합', icon:'📋'}
+                ].map(tab => (
+                  <button key={tab.id}
+                    onClick={() => { setActiveTab(tab.id); window.scrollTo({top: resultRef.current?.offsetTop - 80, behavior:'smooth'}); }}
+                    className={'flex-shrink-0 px-3 py-2 rounded-lg text-xs font-bold transition-all whitespace-nowrap ' +
+                      (activeTab===tab.id
+                        ? 'bg-gold text-black shadow-lg shadow-gold/30'
+                        : 'bg-gray-800/80 text-gray-400 hover:text-gold hover:bg-gray-800')}>
+                    {tab.icon} {tab.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* ===== 그룹 1: 기본 사주 ===== */}
+            {(activeTab==='all' || activeTab==='basic') && <>
 
             {/* 사주 원국 */}
             <AccordionSection title="사주 원국 (四柱原局)" subtitle="년주·월주·일주·시주" delay={0}>
@@ -3552,6 +3580,11 @@ function App() {
               )}
               <div className="mt-3 text-center text-xs text-gray-500">※ 일주의 천간(日干)이 '나' 자신을 나타냅니다</div>
             </AccordionSection>
+
+            </>}
+
+            {/* ===== 그룹 3: 운세 흐름 ===== */}
+            {(activeTab==='all' || activeTab==='fortune') && <>
 
             {/* ★ 오늘의 운세 - 월간 달력 통합 */}
             <AccordionSection title="오늘의 운세 달력" subtitle={calendarYear+'년 '+calendarMonth+'월 · 날짜를 눌러 상세 운세 확인'} delay={50}>
@@ -3678,7 +3711,12 @@ function App() {
 
             <AdSlot type="native" />
 
-            {/* ★ 신규: 일간 강약 분석 */}
+            </>}
+
+            {/* ===== 그룹 2: 심화 분석 ===== */}
+            {(activeTab==='all' || activeTab==='deep') && <>
+
+            {/* ★ 일간 강약 분석 */}
             {result.dayMasterStrength && (
               <AccordionSection title="일간 강약 분석 (身强身弱)" subtitle="득령·득지·득세·통근 종합 분석" delay={75}>
                 <div className="space-y-4">
@@ -3806,12 +3844,22 @@ function App() {
               <GyeokgukDisplay gyeokguk={gyeokguk} />
             </AccordionSection>
 
+            </>}
+
+            {/* ===== 그룹 4: 특수 분석 ===== */}
+            {(activeTab==='all' || activeTab==='special') && <>
+
             {/* 60일주론 */}
             <AccordionSection title="60일주론" subtitle={CHEONGAN[result.pillars[2].stem].name+JIJI[result.pillars[2].branch].name+'일주 해석'} delay={200}>
               <Ilju60Display ilju={ilju60} />
             </AccordionSection>
 
             <AdSlot type="native" />
+
+            </>}
+
+            {/* ===== 그룹 1 계속: 기본 사주 ===== */}
+            {(activeTab==='all' || activeTab==='basic') && <>
 
             {/* 오행 분석 */}
             <AccordionSection title="오행 분석 (五行分析)" subtitle="목·화·토·금·수 기운의 분포" delay={250}>
@@ -3840,12 +3888,22 @@ function App() {
               <NapeumDisplay pillars={result.pillars} />
             </AccordionSection>
 
+            </>}
+
+            {/* ===== 그룹 2 계속: 심화 분석 ===== */}
+            {(activeTab==='all' || activeTab==='deep') && <>
+
             {/* 공망 */}
             <AccordionSection title="공망 (空亡)" subtitle="일주 기준 비어있는 기운" delay={350}>
               <GongmangDisplay gongmang={gongmang} pillars={result.pillars} />
             </AccordionSection>
 
             <AdSlot type="native" />
+
+            </>}
+
+            {/* ===== 그룹 1 계속: 기본 사주 ===== */}
+            {(activeTab==='all' || activeTab==='basic') && <>
 
             {/* 십성 분석 */}
             <AccordionSection title="십성 분석 (十星分析)" subtitle="일간 기준 각 자리의 관계" delay={400}>
@@ -3877,6 +3935,11 @@ function App() {
                 ))}
               </div>
             </AccordionSection>
+
+            </>}
+
+            {/* ===== 그룹 3 계속: 운세 흐름 ===== */}
+            {(activeTab==='all' || activeTab==='fortune') && <>
 
             {/* 대운 */}
             <AccordionSection title="대운 (大運)" subtitle={(result.daeun.startAge)+'세부터 · '+(result.daeun.forward?'순행':'역행')} delay={500}>
@@ -4134,6 +4197,11 @@ function App() {
               </AccordionSection>
             )}
 
+            </>}
+
+            {/* ===== 그룹 4 계속: 특수 분석 ===== */}
+            {(activeTab==='all' || activeTab==='special') && <>
+
             {/* 토정비결 */}
             <AccordionSection title="토정비결 (土亭秘訣)" subtitle="올해의 총운과 월별 운세" delay={650} defaultOpen={false}>
               <TojeongDisplay tojeong={tojeong} />
@@ -4141,7 +4209,12 @@ function App() {
 
             <AdSlot type="native" />
 
-            {/* ★ 신규: 세운 10년 흐름 */}
+            </>}
+
+            {/* ===== 그룹 3 계속: 운세 흐름 ===== */}
+            {(activeTab==='all' || activeTab==='fortune') && <>
+
+            {/* ★ 세운 10년 흐름 */}
             {result.decadeFortune && (
               <AccordionSection title="세운 10년 흐름 (歲運流年)" subtitle="향후 10년간의 운세 변화" delay={660}>
                 <div className="space-y-4">
@@ -4195,7 +4268,12 @@ function App() {
               </AccordionSection>
             )}
 
-            {/* ★ 신규: 인생 로드맵 */}
+            </>}
+
+            {/* ===== 그룹 5: 인생/관계 ===== */}
+            {(activeTab==='all' || activeTab==='life') && <>
+
+            {/* ★ 인생 로드맵 */}
             {result.lifeRoadmap && (
               <AccordionSection title="인생 로드맵 (人生路圖)" subtitle="시기별 운세와 인생 전환점" delay={680} defaultOpen={false}>
                 <div className="space-y-4">
@@ -4241,7 +4319,12 @@ function App() {
 
             <AdSlot type="native" />
 
-            {/* ★ 신규: 확장 신살 (30+ 종류) */}
+            </>}
+
+            {/* ===== 그룹 4 계속: 특수 분석 ===== */}
+            {(activeTab==='all' || activeTab==='special') && <>
+
+            {/* ★ 확장 신살 (30+ 종류) */}
             {result.fullShinsal && result.fullShinsal.length > 0 && (
               <AccordionSection title="신살 분석 (神殺分析)" subtitle={'사주에 나타난 ' + result.fullShinsal.length + '개의 특별한 기운'} delay={700}>
                 <div className="mb-4 flex gap-3 flex-wrap">
@@ -4285,6 +4368,11 @@ function App() {
               </AccordionSection>
             )}
 
+            </>}
+
+            {/* ===== 그룹 6: 종합 ===== */}
+            {(activeTab==='all' || activeTab==='summary') && <>
+
             {/* 종합 해석 */}
             <AccordionSection title="종합 해석" subtitle="사주 전체를 아우르는 분석" delay={800}>
               <div className="prose prose-invert prose-sm max-w-none">
@@ -4299,6 +4387,8 @@ function App() {
                 })()}
               </div>
             </AccordionSection>
+
+            </>}
 
             {/* 버튼들 */}
             <div className="flex flex-wrap gap-3 justify-center mt-8 mb-8">
