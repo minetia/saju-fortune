@@ -4014,7 +4014,6 @@ function App() {
         </div>
       </header>
 
-      <div className="max-w-4xl mx-auto px-4 mt-4"><AdSlot type="banner" /></div>
 
       <main className="max-w-4xl mx-auto px-4 py-6">
         {/* === 입력 폼 === */}
@@ -4109,31 +4108,32 @@ function App() {
               {gyeokguk && <p className="text-sm text-gold/60 mt-1">{gyeokguk.name}</p>}
             </div>
 
-            {/* ★ 6탭 네비게이션 */}
+            {/* ★ 탭 네비게이션 - 2줄 그리드 */}
             <div className="mb-6 sticky top-14 z-30 bg-bg-dark/95 backdrop-blur-md py-2 -mx-4 px-4 border-b border-gray-800/50">
-              <div className="flex gap-1 overflow-x-auto pb-1 scrollbar-hide">
+              <div className="grid grid-cols-7 gap-1">
                 {[
                   {id:'all', label:'전체', icon:'☰'},
                   {id:'basic', label:'기본사주', icon:'🏛'},
                   {id:'deep', label:'심화분석', icon:'🔬'},
-                  {id:'fortune', label:'운세흐름', icon:'📅'},
-                  {id:'special', label:'특수분석', icon:'⭐'},
-                  {id:'life', label:'인생/관계', icon:'💑'},
+                  {id:'fortune', label:'운세', icon:'📅'},
+                  {id:'special', label:'특수', icon:'⭐'},
+                  {id:'life', label:'인생', icon:'💑'},
                   {id:'talisman', label:'부적', icon:'🧿'},
                   {id:'taegil', label:'택일', icon:'💍'},
-                  {id:'naming', label:'이름풀이', icon:'🔢'},
-                  {id:'iching', label:'주역점', icon:'🃏'},
+                  {id:'naming', label:'이름', icon:'🔢'},
+                  {id:'iching', label:'주역', icon:'🃏'},
                   {id:'zodiac', label:'띠운세', icon:'🐉'},
                   {id:'dream', label:'꿈해몽', icon:'🌙'},
                   {id:'summary', label:'종합', icon:'📋'}
                 ].map(tab => (
                   <button key={tab.id}
                     onClick={() => { setActiveTab(tab.id); window.scrollTo({top: resultRef.current?.offsetTop - 80, behavior:'smooth'}); }}
-                    className={'flex-shrink-0 px-3 py-2 rounded-lg text-xs font-bold transition-all whitespace-nowrap ' +
+                    className={'px-1 py-1.5 rounded-lg text-xs font-bold transition-all text-center ' +
                       (activeTab===tab.id
                         ? 'bg-gold text-black shadow-lg shadow-gold/30'
                         : 'bg-gray-800/80 text-gray-400 hover:text-gold hover:bg-gray-800')}>
-                    {tab.icon} {tab.label}
+                    <div>{tab.icon}</div>
+                    <div className="text-xs mt-0.5" style={{fontSize:'0.65rem'}}>{tab.label}</div>
                   </button>
                 ))}
               </div>
@@ -4286,8 +4286,7 @@ function App() {
               )}
             </AccordionSection>
 
-            <AdSlot type="native" />
-
+            
             </>}
 
             {/* ===== 그룹 2: 심화 분석 ===== */}
@@ -4431,8 +4430,7 @@ function App() {
               <Ilju60Display ilju={ilju60} />
             </AccordionSection>
 
-            <AdSlot type="native" />
-
+            
             </>}
 
             {/* ===== 그룹 1 계속: 기본 사주 ===== */}
@@ -4475,8 +4473,7 @@ function App() {
               <GongmangDisplay gongmang={gongmang} pillars={result.pillars} />
             </AccordionSection>
 
-            <AdSlot type="native" />
-
+            
             </>}
 
             {/* ===== 그룹 1 계속: 기본 사주 ===== */}
@@ -4524,8 +4521,7 @@ function App() {
               <div className="mt-3 text-xs text-gray-500">← 좌우 스크롤하여 전체 대운을 확인하세요</div>
             </AccordionSection>
 
-            <AdSlot type="native" />
-
+            
             {/* ★ 상세 월운 (月運) - 클릭하면 해당 월 달력 */}
             <AccordionSection title={(new Date().getFullYear())+"년 월운 (月運)"} subtitle="월을 클릭하면 해당 월의 일별 달력 운세를 볼 수 있습니다" delay={550}>
               {detailedMonths ? (
@@ -4784,8 +4780,7 @@ function App() {
               <TojeongDisplay tojeong={tojeong} />
             </AccordionSection>
 
-            <AdSlot type="native" />
-
+            
             </>}
 
             {/* ===== 그룹 3 계속: 운세 흐름 ===== */}
@@ -4894,8 +4889,7 @@ function App() {
               </AccordionSection>
             )}
 
-            <AdSlot type="native" />
-
+            
             </>}
 
             {/* ===== 그룹 4 계속: 특수 분석 ===== */}
@@ -5316,7 +5310,6 @@ function App() {
         )}
       </main>
 
-      <div className="bottom-ad px-4 py-2"><div className="max-w-4xl mx-auto"><AdSlot type="bottom" /></div></div>
 
       <footer className="text-center py-8 pb-24 text-xs text-gray-600">
         <p>사주팔자 만세력 · 무료 사주풀이 서비스</p>
