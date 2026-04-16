@@ -3483,11 +3483,11 @@ function App() {
     } catch(e) {}
   }, []);
 
-  function saveRecentSearch(y, m, d, g) {
+  function saveRecentSearch(y, m, d, g, h, mi, cal, lunar, solar) {
     try {
-      const entry = { y, m, d, g, ts: Date.now() };
+      const entry = { y, m, d, g, h: h||0, mi: mi||0, cal: cal||'solar', lunar: !!lunar, solar: !!solar, ts: Date.now() };
       const saved = JSON.parse(localStorage.getItem('saju_recent') || '[]');
-      const updated = [entry, ...saved.filter(s => !(s.y===y && s.m===m && s.d===d))].slice(0, 5);
+      const updated = [entry, ...saved.filter(s => !(s.y===y && s.m===m && s.d===d && s.g===g))].slice(0, 10);
       localStorage.setItem('saju_recent', JSON.stringify(updated));
       setRecentSearches(updated);
     } catch(e) {}
@@ -3543,7 +3543,7 @@ function App() {
         setCalendarFortune(cf);
         setSelectedDay(cf.cells.find(c => c && c.isToday) || null);
         setMode('result');
-        saveRecentSearch(birthYear, birthMonth, birthDay, gender);
+        saveRecentSearch(birthYear, birthMonth, birthDay, gender, hour, minute, calType, isLeapMonth, useTrueSolarTime);
         setTimeout(() => { resultRef.current?.scrollIntoView({ behavior: 'smooth' }); }, 100);
       } catch(e) {
         console.error('사주 계산 오류:', e);
@@ -3583,6 +3583,11 @@ function App() {
 
   function loadRecentSearch(s) {
     setBirthYear(s.y); setBirthMonth(s.m); setBirthDay(s.d); setGender(s.g);
+    setBirthHour(s.h || 12); setBirthMinute(s.mi || 0);
+    if (s.cal) setCalType(s.cal);
+    if (s.lunar !== undefined) setIsLeapMonth(!!s.lunar);
+    if (s.solar !== undefined) setUseTrueSolarTime(!!s.solar);
+    setShowTimeUnknown(false);
   }
 
   useEffect(() => {
@@ -3666,7 +3671,7 @@ function App() {
                     {recentSearches.map((s,i) => (
                       <button key={i} onClick={() => loadRecentSearch(s)}
                         className="text-xs px-3 py-1.5 rounded-full bg-gold/10 text-gold/70 hover:bg-gold/20 border border-gold/20">
-                        {s.y}.{s.m}.{s.d} {s.g==='male'?'♂':'♀'}
+                        {s.y}.{s.m}.{s.d} {String(s.h||12).padStart(2,'0')}:{String(s.mi||0).padStart(2,'0')} {s.g==='male'?'♂':'♀'}{s.cal==='lunar'?' 음':''}
                       </button>
                     ))}
                   </div>
