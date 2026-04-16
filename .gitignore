@@ -1,2 +1,5 @@
 saju_app_backup2.html
 saju_app_backup3.html
+node_modules/
+dist/
+*.cjs
