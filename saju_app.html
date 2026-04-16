@@ -3647,191 +3647,316 @@ const DREAM_DB_EXTRA = {
 // 기존 DREAM_DB에 확장 DB 병합
 Object.assign(DREAM_DB, DREAM_DB_EXTRA);
 
-// 부적(符籍) 생성 엔진 - 사주 기반 맞춤형 6종
+// 부적(符籍) 생성 엔진 - 전통 한국 부적 스타일 6종
+// 노란 종이(黃紙) + 빨간 주사(朱砂) 잉크 전통 방식
 // ============================================================
 function generateTalisman(canvas, type, dayStem, yongsinAnalysis, pillars) {
   const ctx = canvas.getContext('2d');
-  const W = 400, H = 600;
-  canvas.width = W;
-  canvas.height = H;
+  const W = 300, H = 480;
+  canvas.width = W; canvas.height = H;
 
   const dayElement = CHEONGAN[dayStem].element;
   const yongsin = yongsinAnalysis ? yongsinAnalysis.yongsin.element : dayElement;
 
-  // 오행별 색상/심볼
-  const ELEM_COLORS = {
-    '목': { main:'#22c55e', sub:'#166534', bg:'#052e16', glow:'#4ade80', char:'木', trigram:'☳', dir:'東', animal:'龍' },
-    '화': { main:'#ef4444', sub:'#991b1b', bg:'#450a0a', glow:'#f87171', char:'火', trigram:'☲', dir:'南', animal:'鳳' },
-    '토': { main:'#f59e0b', sub:'#92400e', bg:'#451a03', glow:'#fbbf24', char:'土', trigram:'☷', dir:'中', animal:'麒' },
-    '금': { main:'#e5e7eb', sub:'#6b7280', bg:'#1f2937', glow:'#f3f4f6', char:'金', trigram:'☱', dir:'西', animal:'虎' },
-    '수': { main:'#3b82f6', sub:'#1e3a5f', bg:'#0c1629', glow:'#60a5fa', char:'水', trigram:'☵', dir:'北', animal:'龜' }
-  };
+  // 전통 부적: 노란 종이(黃紙) 배경
+  const paperGrad = ctx.createLinearGradient(0,0,W,H);
+  paperGrad.addColorStop(0,'#e8d08c');
+  paperGrad.addColorStop(0.3,'#f0d898');
+  paperGrad.addColorStop(0.5,'#e5cc82');
+  paperGrad.addColorStop(0.7,'#f0d898');
+  paperGrad.addColorStop(1,'#dcc478');
+  ctx.fillStyle = paperGrad;
+  ctx.fillRect(0,0,W,H);
 
-  const elemStyle = ELEM_COLORS[yongsin] || ELEM_COLORS['토'];
-
-  // 부적 종류별 설정
-  const TALISMAN_CONFIG = {
-    'yongsin': { title:'용신부적', hanja:'用神符', mainChar: elemStyle.char, purpose:'사주 균형', desc:'사주의 균형을 맞춰주는 용신의 기운을 담은 부적', mantra:'天地用神 護身安命' },
-    'wealth': { title:'재물부적', hanja:'財物符', mainChar:'財', purpose:'재물 증진', desc:'재물운을 높이고 금전적 안정을 가져오는 부적', mantra:'招財進寶 金玉滿堂' },
-    'health': { title:'건강부적', hanja:'健康符', mainChar:'壽', purpose:'건강 장수', desc:'질병을 물리치고 건강과 장수를 기원하는 부적', mantra:'百病消除 延年益壽' },
-    'love': { title:'연애부적', hanja:'戀愛符', mainChar:'緣', purpose:'좋은 인연', desc:'좋은 인연을 만나고 사랑이 이루어지는 부적', mantra:'天定良緣 百年好合' },
-    'study': { title:'학업부적', hanja:'學業符', mainChar:'魁', purpose:'학업 성취', desc:'시험 합격과 학업 성취를 기원하는 부적', mantra:'文昌帝君 金榜題名' },
-    'protect': { title:'액막이부적', hanja:'辟邪符', mainChar:'鎭', purpose:'액운 방지', desc:'나쁜 기운과 액운을 물리치는 보호 부적', mantra:'天官賜福 百邪不侵' }
-  };
-
-  const config = TALISMAN_CONFIG[type] || TALISMAN_CONFIG['yongsin'];
-
-  // === 배경 ===
-  const bgGrad = ctx.createLinearGradient(0, 0, 0, H);
-  bgGrad.addColorStop(0, '#1a0a00');
-  bgGrad.addColorStop(0.5, '#2a1500');
-  bgGrad.addColorStop(1, '#1a0a00');
-  ctx.fillStyle = bgGrad;
-  ctx.fillRect(0, 0, W, H);
-
-  // === 테두리 장식 ===
-  // 외곽 금색 테두리
-  ctx.strokeStyle = '#D4AF37';
-  ctx.lineWidth = 3;
-  ctx.strokeRect(15, 15, W-30, H-30);
-  ctx.strokeStyle = '#b8860b';
-  ctx.lineWidth = 1;
-  ctx.strokeRect(22, 22, W-44, H-44);
-
-  // 모서리 장식
-  const corners = [[25,25],[W-25,25],[25,H-25],[W-25,H-25]];
-  corners.forEach(([cx,cy]) => {
-    ctx.beginPath();
-    ctx.arc(cx, cy, 8, 0, Math.PI*2);
-    ctx.fillStyle = '#D4AF37';
-    ctx.fill();
-    ctx.beginPath();
-    ctx.arc(cx, cy, 4, 0, Math.PI*2);
-    ctx.fillStyle = '#1a0a00';
-    ctx.fill();
-  });
-
-  // === 상단: 팔괘 장식 + 제목 ===
-  ctx.fillStyle = '#D4AF37';
-  ctx.font = '16px serif';
-  ctx.textAlign = 'center';
-  const trigrams = ['☰','☱','☲','☳','☴','☵','☶','☷'];
-  trigrams.forEach((t, i) => {
-    const angle = (i / 8) * Math.PI * 2 - Math.PI / 2;
-    const tx = W/2 + Math.cos(angle) * 55;
-    const ty = 85 + Math.sin(angle) * 55;
-    ctx.fillText(t, tx, ty);
-  });
-
-  // 태극 원
-  ctx.beginPath();
-  ctx.arc(W/2, 85, 25, 0, Math.PI*2);
-  ctx.strokeStyle = '#D4AF37';
-  ctx.lineWidth = 2;
-  ctx.stroke();
-
-  // 태극 심볼
-  ctx.font = '28px serif';
-  ctx.fillStyle = '#D4AF37';
-  ctx.fillText('☯', W/2, 93);
-
-  // 부적 이름
-  ctx.font = 'bold 22px serif';
-  ctx.fillStyle = '#D4AF37';
-  ctx.fillText(config.hanja, W/2, 160);
-
-  ctx.font = '12px sans-serif';
-  ctx.fillStyle = '#b8860b';
-  ctx.fillText(config.title + ' · ' + config.purpose, W/2, 180);
-
-  // === 중앙: 메인 부적 문양 ===
-  // 원형 결계
-  ctx.beginPath();
-  ctx.arc(W/2, 320, 110, 0, Math.PI*2);
-  ctx.strokeStyle = elemStyle.main + '66';
-  ctx.lineWidth = 2;
-  ctx.stroke();
-
-  ctx.beginPath();
-  ctx.arc(W/2, 320, 95, 0, Math.PI*2);
-  ctx.strokeStyle = '#D4AF37';
-  ctx.lineWidth = 1.5;
-  ctx.stroke();
-
-  // 팔방위 문자
-  const directions = ['北','東北','東','東南','南','西南','西','西北'];
-  directions.forEach((d, i) => {
-    const angle = (i / 8) * Math.PI * 2 - Math.PI / 2;
-    const dx = W/2 + Math.cos(angle) * 102;
-    const dy = 320 + Math.sin(angle) * 102;
-    ctx.font = '10px serif';
-    ctx.fillStyle = '#D4AF37';
-    ctx.fillText(d, dx, dy + 4);
-  });
-
-  // 중앙 큰 글자 (부적 핵심)
-  // 글로우 효과
-  ctx.shadowColor = elemStyle.glow;
-  ctx.shadowBlur = 30;
-  ctx.font = 'bold 80px serif';
-  ctx.fillStyle = elemStyle.main;
-  ctx.fillText(config.mainChar, W/2, 345);
-  ctx.shadowBlur = 0;
-
-  // 용신 오행 글자 (좌우)
-  ctx.font = 'bold 28px serif';
-  ctx.fillStyle = elemStyle.main + 'aa';
-  ctx.fillText(elemStyle.trigram, W/2 - 60, 310);
-  ctx.fillText(elemStyle.trigram, W/2 + 60, 310);
-
-  // 사주 4기둥 한자 (좌우 세로)
-  if (pillars) {
-    ctx.font = '14px serif';
-    ctx.fillStyle = '#D4AF37cc';
-    const pillarLabels = ['年','月','日','時'];
-    pillars.forEach((p, i) => {
-      // 왼쪽: 천간
-      ctx.fillText(pillarLabels[i], 50, 250 + i*35);
-      ctx.fillText(CHEONGAN[p.stem].hanja, 68, 250 + i*35);
-      // 오른쪽: 지지
-      ctx.fillText(JIJI[p.branch].hanja, W-68, 250 + i*35);
-    });
+  // 종이 질감 (노이즈)
+  for (let i = 0; i < 2000; i++) {
+    const x = Math.random()*W, y = Math.random()*H;
+    ctx.fillStyle = `rgba(${120+Math.random()*40},${100+Math.random()*40},${50+Math.random()*30},${Math.random()*0.08})`;
+    ctx.fillRect(x,y,1,1);
   }
 
-  // === 주문(呪文) ===
-  ctx.font = 'bold 16px serif';
-  ctx.fillStyle = '#D4AF37';
-  const mantraChars = config.mantra.split('');
-  const half = Math.ceil(mantraChars.length / 2);
-  // 상단 주문
-  ctx.fillText(config.mantra.substring(0, half), W/2, 430);
-  // 하단 주문
-  ctx.fillText(config.mantra.substring(half), W/2, 455);
+  // 빨간 주사(朱砂) 잉크 색상
+  const RED = '#b91c1c';
+  const RED_LIGHT = '#dc2626';
+  const RED_DARK = '#7f1d1d';
 
-  // === 하단: 용신 정보 + 인장 ===
-  ctx.font = '11px sans-serif';
-  ctx.fillStyle = '#b8860b';
-  ctx.fillText(`일간: ${CHEONGAN[dayStem].name}${dayElement}(${ELEM_COLORS[dayElement].char}) · 용신: ${yongsin}(${ELEM_COLORS[yongsin].char})`, W/2, 490);
-  ctx.fillText(`방위: ${elemStyle.dir} · 색상: ${yongsinAnalysis ? yongsinAnalysis.yongsin.color : ''}`, W/2, 508);
+  ctx.textAlign = 'center';
 
-  // 인장 (도장)
-  ctx.save();
-  ctx.translate(W/2, 550);
-  ctx.rotate(-0.1);
-  // 사각 인장
-  ctx.strokeStyle = '#c41e3a';
-  ctx.lineWidth = 2;
-  ctx.strokeRect(-25, -18, 50, 36);
-  ctx.font = 'bold 14px serif';
-  ctx.fillStyle = '#c41e3a';
-  ctx.fillText('開運', 0, 5);
-  ctx.restore();
+  // 6종 부적별 완전히 다른 디자인
+  const DESIGNS = {
+    'yongsin': function() {
+      // === 용신부적: 태극+팔괘 중앙에 오행 글자 ===
+      const elChar = {'목':'木','화':'火','토':'土','금':'金','수':'水'}[yongsin] || '土';
 
-  // 날짜
+      // 외곽 사각 테두리
+      ctx.strokeStyle = RED; ctx.lineWidth = 3;
+      ctx.strokeRect(12,12,W-24,H-24);
+      ctx.strokeStyle = RED_DARK; ctx.lineWidth = 1;
+      ctx.strokeRect(20,20,W-40,H-40);
+
+      // 상단: "勅令" (칙령)
+      ctx.fillStyle = RED; ctx.font = 'bold 28px serif';
+      ctx.fillText('勅', W/2-25, 60); ctx.fillText('令', W/2+25, 60);
+
+      // 태극 대원
+      ctx.beginPath(); ctx.arc(W/2, H/2-20, 90, 0, Math.PI*2);
+      ctx.strokeStyle = RED; ctx.lineWidth = 2; ctx.stroke();
+
+      // 팔괘
+      const trigrams = ['☰','☱','☲','☳','☴','☵','☶','☷'];
+      ctx.font = '18px serif'; ctx.fillStyle = RED;
+      trigrams.forEach((t,i) => {
+        const a = (i/8)*Math.PI*2 - Math.PI/2;
+        ctx.fillText(t, W/2+Math.cos(a)*75, H/2-20+Math.sin(a)*75+6);
+      });
+
+      // 중앙: 용신 오행 대자
+      ctx.font = 'bold 72px serif'; ctx.fillStyle = RED;
+      ctx.fillText(elChar, W/2, H/2);
+
+      // 좌우 세로: 天地用神 護身安命
+      ctx.font = '18px serif'; ctx.fillStyle = RED_DARK;
+      '天地用神'.split('').forEach((c,i) => ctx.fillText(c, 42, 100+i*35));
+      '護身安命'.split('').forEach((c,i) => ctx.fillText(c, W-42, 100+i*35));
+
+      // 하단: 인장
+      ctx.strokeStyle = RED; ctx.lineWidth = 2;
+      ctx.strokeRect(W/2-22, H-75, 44, 44);
+      ctx.font = 'bold 16px serif'; ctx.fillStyle = RED;
+      ctx.fillText('用神', W/2, H-48);
+    },
+
+    'wealth': function() {
+      // === 재물부적: 동전 문양 + 招財進寶 ===
+      ctx.strokeStyle = RED; ctx.lineWidth = 3;
+      ctx.strokeRect(12,12,W-24,H-24);
+
+      // 상단: 招財進寶 (가로)
+      ctx.font = 'bold 30px serif'; ctx.fillStyle = RED;
+      ctx.fillText('招財進寶', W/2, 55);
+
+      // 중앙: 엽전(동전) 문양 - 큰 원 + 사각 구멍
+      ctx.beginPath(); ctx.arc(W/2, H/2-10, 80, 0, Math.PI*2);
+      ctx.strokeStyle = RED; ctx.lineWidth = 3; ctx.stroke();
+      ctx.beginPath(); ctx.arc(W/2, H/2-10, 70, 0, Math.PI*2);
+      ctx.stroke();
+      // 사각 구멍
+      ctx.strokeRect(W/2-18, H/2-28, 36, 36);
+
+      // 동전 안 글자: 財
+      ctx.font = 'bold 30px serif'; ctx.fillStyle = RED;
+      ctx.fillText('財', W/2, H/2-2);
+
+      // 동전 상하좌우 글자
+      ctx.font = '16px serif'; ctx.fillStyle = RED_DARK;
+      ctx.fillText('金', W/2, H/2-55); ctx.fillText('玉', W/2, H/2+45);
+      ctx.fillText('滿', W/2-55, H/2-5); ctx.fillText('堂', W/2+55, H/2-5);
+
+      // 좌우: 부(富) 귀(貴) 대자
+      ctx.font = 'bold 50px serif'; ctx.fillStyle = RED;
+      ctx.fillText('富', 50, 160); ctx.fillText('貴', W-50, 160);
+
+      // 하단: 세로 주문
+      ctx.font = '16px serif'; ctx.fillStyle = RED_DARK;
+      '日進斗金'.split('').forEach((c,i) => ctx.fillText(c, 45, 280+i*30));
+      '財源廣進'.split('').forEach((c,i) => ctx.fillText(c, W-45, 280+i*30));
+
+      // 인장
+      ctx.beginPath(); ctx.arc(W/2, H-55, 22, 0, Math.PI*2);
+      ctx.strokeStyle = RED; ctx.lineWidth = 2; ctx.stroke();
+      ctx.font = 'bold 14px serif'; ctx.fillStyle = RED;
+      ctx.fillText('招財', W/2, H-50);
+    },
+
+    'health': function() {
+      // === 건강부적: 거북이 등껍질 문양 + 壽 ===
+      ctx.strokeStyle = RED; ctx.lineWidth = 3;
+      ctx.strokeRect(12,12,W-24,H-24);
+      ctx.strokeRect(20,20,W-40,H-40);
+
+      // 상단
+      ctx.font = 'bold 26px serif'; ctx.fillStyle = RED;
+      ctx.fillText('百病消除', W/2, 55);
+
+      // 거북이 등 육각형 패턴
+      const cx = W/2, cy = H/2-15, size = 25;
+      for (let row = -2; row <= 2; row++) {
+        for (let col = -2; col <= 2; col++) {
+          const hx = cx + col * size * 1.75 + (row%2)*size*0.87;
+          const hy = cy + row * size * 1.5;
+          if (Math.abs(hx-cx) > 75 || Math.abs(hy-cy) > 65) continue;
+          ctx.beginPath();
+          for (let k=0; k<6; k++) {
+            const a = (k/6)*Math.PI*2 - Math.PI/6;
+            const px = hx + Math.cos(a)*size*0.8;
+            const py = hy + Math.sin(a)*size*0.8;
+            k===0 ? ctx.moveTo(px,py) : ctx.lineTo(px,py);
+          }
+          ctx.closePath();
+          ctx.strokeStyle = RED + 'aa'; ctx.lineWidth = 1; ctx.stroke();
+        }
+      }
+
+      // 중앙: 壽 (수) 대자
+      ctx.font = 'bold 80px serif'; ctx.fillStyle = RED;
+      ctx.fillText('壽', W/2, H/2+10);
+
+      // 좌우
+      ctx.font = '18px serif'; ctx.fillStyle = RED_DARK;
+      '延年益壽'.split('').forEach((c,i) => ctx.fillText(c, 40, 100+i*35));
+      '身體健康'.split('').forEach((c,i) => ctx.fillText(c, W-40, 100+i*35));
+
+      // 하단: 龜 (거북이) 인장
+      ctx.strokeStyle = RED; ctx.lineWidth = 2;
+      ctx.strokeRect(W/2-22, H-75, 44, 44);
+      ctx.font = 'bold 18px serif'; ctx.fillStyle = RED;
+      ctx.fillText('龜壽', W/2, H-48);
+    },
+
+    'love': function() {
+      // === 연애부적: 하트+나비 문양 + 鴛鴦(원앙) ===
+      ctx.strokeStyle = RED; ctx.lineWidth = 2;
+      ctx.strokeRect(12,12,W-24,H-24);
+
+      // 상단
+      ctx.font = 'bold 26px serif'; ctx.fillStyle = RED;
+      ctx.fillText('天定良緣', W/2, 55);
+
+      // 이중원 (인연의 고리)
+      ctx.beginPath(); ctx.arc(W/2-30, H/2-20, 55, 0, Math.PI*2);
+      ctx.strokeStyle = RED; ctx.lineWidth = 2; ctx.stroke();
+      ctx.beginPath(); ctx.arc(W/2+30, H/2-20, 55, 0, Math.PI*2);
+      ctx.stroke();
+
+      // 교차점에 緣
+      ctx.font = 'bold 60px serif'; ctx.fillStyle = RED;
+      ctx.fillText('緣', W/2, H/2);
+
+      // 위 아래 나비 장식
+      ctx.font = '30px serif'; ctx.fillStyle = RED_DARK;
+      ctx.fillText('蝶', W/2-60, 120); ctx.fillText('蝶', W/2+60, 120);
+
+      // 좌우 세로
+      ctx.font = '18px serif'; ctx.fillStyle = RED_DARK;
+      '百年好合'.split('').forEach((c,i) => ctx.fillText(c, 38, 150+i*35));
+      '永結同心'.split('').forEach((c,i) => ctx.fillText(c, W-38, 150+i*35));
+
+      // 하단: 쌍 하트 문양
+      ctx.font = '24px serif'; ctx.fillStyle = RED;
+      ctx.fillText('♡', W/2-15, H-80); ctx.fillText('♡', W/2+15, H-80);
+
+      // 원형 인장
+      ctx.beginPath(); ctx.arc(W/2, H-45, 20, 0, Math.PI*2);
+      ctx.strokeStyle = RED; ctx.lineWidth = 2; ctx.stroke();
+      ctx.font = 'bold 13px serif'; ctx.fillStyle = RED;
+      ctx.fillText('良緣', W/2, H-40);
+    },
+
+    'study': function() {
+      // === 학업부적: 붓+책 문양 + 문창성 ===
+      ctx.strokeStyle = RED; ctx.lineWidth = 3;
+      ctx.strokeRect(12,12,W-24,H-24);
+
+      // 상단
+      ctx.font = 'bold 26px serif'; ctx.fillStyle = RED;
+      ctx.fillText('金榜題名', W/2, 55);
+
+      // 책 모양 사각형
+      ctx.strokeStyle = RED; ctx.lineWidth = 2;
+      ctx.strokeRect(W/2-55, H/2-70, 110, 90);
+      ctx.strokeRect(W/2-50, H/2-65, 100, 80);
+      // 책 중앙선
+      ctx.beginPath(); ctx.moveTo(W/2, H/2-65); ctx.lineTo(W/2, H/2+15);
+      ctx.strokeStyle = RED; ctx.lineWidth = 1; ctx.stroke();
+
+      // 책 위: 魁 대자
+      ctx.font = 'bold 55px serif'; ctx.fillStyle = RED;
+      ctx.fillText('魁', W/2, H/2-10);
+
+      // 붓 문양 (세로선 + 끝)
+      ctx.strokeStyle = RED; ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.moveTo(W/2, H/2+30); ctx.lineTo(W/2, H/2+100);
+      ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(W/2-8, H/2+100); ctx.lineTo(W/2, H/2+115); ctx.lineTo(W/2+8, H/2+100);
+      ctx.fillStyle = RED; ctx.fill();
+
+      // 좌우
+      ctx.font = '18px serif'; ctx.fillStyle = RED_DARK;
+      '文昌帝君'.split('').forEach((c,i) => ctx.fillText(c, 38, 100+i*35));
+      '筆墨生輝'.split('').forEach((c,i) => ctx.fillText(c, W-38, 100+i*35));
+
+      // 별 장식
+      ctx.font = '16px serif'; ctx.fillStyle = RED;
+      ctx.fillText('★', W/2-70, 95); ctx.fillText('★', W/2+70, 95);
+      ctx.fillText('★', W/2, 85);
+
+      // 인장
+      ctx.strokeStyle = RED; ctx.lineWidth = 2;
+      ctx.strokeRect(W/2-22, H-70, 44, 40);
+      ctx.font = 'bold 14px serif'; ctx.fillStyle = RED;
+      ctx.fillText('及第', W/2, H-45);
+    },
+
+    'protect': function() {
+      // === 액막이부적: 호랑이+칼 문양 + 鎭 ===
+      ctx.strokeStyle = RED; ctx.lineWidth = 4;
+      ctx.strokeRect(10,10,W-20,H-20);
+      ctx.strokeStyle = RED_DARK; ctx.lineWidth = 2;
+      ctx.strokeRect(18,18,W-36,H-36);
+
+      // 상단: 急急如律令 (긴급 주문)
+      ctx.font = 'bold 22px serif'; ctx.fillStyle = RED;
+      ctx.fillText('急急如律令', W/2, 52);
+
+      // 칼(劍) 문양 - 세로 긴 선 + 십자 가드
+      ctx.strokeStyle = RED; ctx.lineWidth = 3;
+      // 칼날
+      ctx.beginPath(); ctx.moveTo(W/2, 80); ctx.lineTo(W/2, H/2+50); ctx.stroke();
+      // 칼끝
+      ctx.beginPath(); ctx.moveTo(W/2-6, H/2+50); ctx.lineTo(W/2, H/2+65); ctx.lineTo(W/2+6, H/2+50); ctx.fill();
+      // 가드 (십자)
+      ctx.beginPath(); ctx.moveTo(W/2-30, 140); ctx.lineTo(W/2+30, 140); ctx.stroke();
+      // 손잡이
+      ctx.strokeRect(W/2-6, 80, 12, 30);
+
+      // 칼날 위: 鎭 (진)
+      ctx.font = 'bold 55px serif'; ctx.fillStyle = RED;
+      ctx.fillText('鎭', W/2, H/2+10);
+
+      // 좌우: 호랑이 무늬 줄
+      ctx.font = '14px serif'; ctx.fillStyle = RED_DARK;
+      for (let j = 0; j < 5; j++) {
+        ctx.strokeStyle = RED + '88'; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.moveTo(25, 90+j*40); ctx.lineTo(55, 90+j*40);
+        ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(W-55, 90+j*40); ctx.lineTo(W-25, 90+j*40);
+        ctx.stroke();
+      }
+
+      // 좌우 세로 주문
+      ctx.font = '18px serif'; ctx.fillStyle = RED;
+      '天官賜福'.split('').forEach((c,i) => ctx.fillText(c, 40, 100+i*38));
+      '百邪不侵'.split('').forEach((c,i) => ctx.fillText(c, W-40, 100+i*38));
+
+      // 하단: 호(虎) 인장
+      ctx.beginPath(); ctx.arc(W/2, H-50, 22, 0, Math.PI*2);
+      ctx.strokeStyle = RED; ctx.lineWidth = 3; ctx.stroke();
+      ctx.font = 'bold 16px serif'; ctx.fillStyle = RED;
+      ctx.fillText('伏虎', W/2, H-44);
+    }
+  };
+
+  // 디자인 실행
+  if (DESIGNS[type]) {
+    DESIGNS[type]();
+  } else {
+    DESIGNS['yongsin']();
+  }
+
+  // 공통: 하단 날짜
   const today = new Date();
-  ctx.font = '9px sans-serif';
-  ctx.fillStyle = '#666';
-  ctx.fillText(`${today.getFullYear()}年 ${today.getMonth()+1}月 ${today.getDate()}日 作成`, W/2, 585);
+  ctx.font = '9px sans-serif'; ctx.fillStyle = '#8b7355';
+  ctx.fillText(`${today.getFullYear()}年 ${today.getMonth()+1}月 ${today.getDate()}日`, W/2, H-15);
 
   return canvas;
 }
